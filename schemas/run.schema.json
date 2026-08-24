@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ub3dqy/seo-autopilot-codex/schemas/run.schema.json",
+  "title": "SEO Autopilot run report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "product_version",
+    "policy_pack_version",
+    "status",
+    "phase",
+    "repository_root",
+    "detected_stack",
+    "started_at",
+    "mode",
+    "findings",
+    "planned_fixes",
+    "changes",
+    "checks",
+    "skipped",
+    "residual_risks",
+    "budgets",
+    "external_sources"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 6, "maxLength": 80},
+    "product_version": {"type": "string"},
+    "policy_pack_version": {"type": "string"},
+    "status": {
+      "enum": ["READY", "READY_WITH_LIMITATIONS", "REVIEW_REQUIRED", "BLOCKED", "PASSED", "FAILED", "NOT_RUN"]
+    },
+    "phase": {
+      "enum": ["INITIALIZED", "DISCOVERY_COMPLETE", "EVIDENCE_COMPLETE", "PLAN_COMPLETE", "PATCH_APPLIED", "VALIDATION_COMPLETE", "COMMITTED", "ROLLED_BACK", "FAILED"]
+    },
+    "repository_root": {"type": "string"},
+    "repository_commit": {"type": ["string", "null"]},
+    "detected_stack": {"type": "string"},
+    "started_at": {"type": "string"},
+    "finished_at": {"type": ["string", "null"]},
+    "mode": {"enum": ["audit", "fix", "live-eval"]},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["finding_id", "rule_id", "severity", "title", "message", "path", "risk", "confidence", "evidence", "auto_fix_available", "status"],
+        "properties": {
+          "finding_id": {"type": "string"},
+          "rule_id": {"type": "string"},
+          "severity": {"enum": ["low", "medium", "high", "critical"]},
+          "title": {"type": "string"},
+          "message": {"type": "string"},
+          "path": {"type": "string"},
+          "line": {"type": ["integer", "null"], "minimum": 1},
+          "risk": {"enum": ["A_AUTO_FIX", "B_REVIEW_REQUIRED", "C_ADVISORY_ONLY"]},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "evidence": {"type": "array"},
+          "auto_fix_available": {"type": "boolean"},
+          "status": {"enum": ["OPEN", "FIXED", "SKIPPED", "DEFERRED"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "planned_fixes": {"type": "array"},
+    "changes": {"type": "array"},
+    "checks": {"type": "array"},
+    "skipped": {"type": "array", "items": {"type": "string"}},
+    "residual_risks": {"type": "array", "items": {"type": "string"}},
+    "branch": {"type": ["string", "null"]},
+    "rollback": {"type": "array", "items": {"type": "string"}},
+    "budgets": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "external_sources": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}
