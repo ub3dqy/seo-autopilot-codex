@@ -9,10 +9,11 @@ if %errorlevel%==0 (
 )
 if errorlevel 1 (
   echo.
-  echo Build failed. See the error above.
+  echo Build stopped safely. Review the error above.
+  echo Existing unmarked or manually modified output is never overwritten without --force.
   pause
   exit /b 1
 )
 echo.
-echo User and Engineering editions are ready in user, engineering and dist.
+echo Transparent User and Engineering editions are ready in user, engineering and dist.
 pause
