@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "pack_id": "google-search-and-web-platform",
+  "version": "2026-08",
+  "last_verified": "2026-08-24",
+  "rules": [
+    {
+      "id": "TECH-ROBOTS-001",
+      "title": "robots.txt is missing from the detected public root",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "TECH-SITEMAP-001",
+      "title": "XML sitemap is missing from the detected public root",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview"
+    },
+    {
+      "id": "ONPAGE-TITLE-001",
+      "title": "Page title is missing or empty",
+      "severity": "high",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/appearance/title-link"
+    },
+    {
+      "id": "ONPAGE-TITLE-002",
+      "title": "Page title is duplicated",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/appearance/title-link"
+    },
+    {
+      "id": "ONPAGE-DESCRIPTION-001",
+      "title": "Meta description is missing",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/appearance/snippet"
+    },
+    {
+      "id": "ONPAGE-DESCRIPTION-002",
+      "title": "Multiple meta descriptions are present",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/appearance/snippet"
+    },
+    {
+      "id": "ACCESSIBILITY-LANG-001",
+      "title": "Document language is not declared",
+      "severity": "low",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://html.spec.whatwg.org/multipage/dom.html#attr-lang"
+    },
+    {
+      "id": "CANONICAL-001",
+      "title": "Canonical URL is not declared",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls"
+    },
+    {
+      "id": "CANONICAL-002",
+      "title": "Multiple canonical URLs are declared",
+      "severity": "high",
+      "default_risk": "C_ADVISORY_ONLY",
+      "source_url": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls"
+    },
+    {
+      "id": "INDEX-NOINDEX-001",
+      "title": "A noindex directive is present",
+      "severity": "high",
+      "default_risk": "C_ADVISORY_ONLY",
+      "source_url": "https://developers.google.com/search/docs/crawling-indexing/block-indexing"
+    },
+    {
+      "id": "SCHEMA-JSONLD-001",
+      "title": "JSON-LD is invalid",
+      "severity": "high",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/appearance/structured-data/sd-policies"
+    },
+    {
+      "id": "IMAGE-ALT-001",
+      "title": "Image alt attribute is missing",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/appearance/google-images"
+    },
+    {
+      "id": "IMAGE-DIMENSIONS-001",
+      "title": "Image dimensions are missing",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "auto_fix_condition": "The image is local, resolves inside the repository, has a supported binary format, and both dimensions are read directly from its header.",
+      "source_url": "https://web.dev/articles/optimize-cls"
+    },
+    {
+      "id": "SECURITY-PROMPT-INJECTION-001",
+      "title": "Instruction-like text exists in untrusted repository content",
+      "severity": "high",
+      "default_risk": "C_ADVISORY_ONLY",
+      "source_url": "https://developers.openai.com/codex/security"
+    }
+  ]
+}
