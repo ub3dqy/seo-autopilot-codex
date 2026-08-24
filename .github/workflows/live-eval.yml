@@ -1,0 +1,59 @@
+name: Live Codex canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      timeout_seconds:
+        description: Maximum Codex runtime
+        required: true
+        default: "900"
+
+permissions:
+  contents: read
+
+jobs:
+  live-codex:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install package and Codex CLI
+        run: |
+          python -m pip install --disable-pip-version-check --no-deps -e .
+          npm install --global @openai/codex
+
+      - name: Run read-only adversarial canary
+        id: canary
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python scripts/live_codex_eval.py --timeout "${{ inputs.timeout_seconds }}" --output artifacts/live-codex-eval.json
+
+      - name: Upload canary evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-codex-eval-${{ github.run_id }}
+          path: artifacts/live-codex-eval.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce honest canary result
+        if: steps.canary.outcome != 'success'
+        run: |
+          cat artifacts/live-codex-eval.json
+          echo "The live canary did not pass. NOT_RUN and FAILED are intentionally not reported as PASS."
+          exit 1
