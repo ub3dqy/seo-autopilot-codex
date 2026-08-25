@@ -2,12 +2,13 @@
 
 ## Trust and transparency
 
-- Канонические исходники, skill, policies, schemas, tests и workflows опубликованы обычными просматриваемыми файлами.
+- Канонические исходники, skill, policies, schemas, tests и локальные verification/release tools опубликованы обычными просматриваемыми файлами.
 - Непрозрачный base64/xz source bundle удалён из source tree.
 - User и Engineering Edition собираются непосредственно из текущего commit.
 - `VERSION` стал единственным источником номера версии.
 - Output-каталоги имеют marker, проверку локальных изменений и атомарную замену.
-- Детерминированные ZIP получают вычисленные SHA-256; tag-release добавляет SPDX SBOM и GitHub provenance attestation.
+- Детерминированные ZIP получают вычисленные SHA-256; локальный release gate добавляет SPDX SBOM.
+- GitHub Actions не используется и не является условием приёмки или релиза.
 
 ## Real Autopilot safety
 
@@ -25,13 +26,14 @@
 - Policy pack версионирован и ссылается на первичные источники.
 - Не обещаются ranking, indexing, traffic или rich-result outcomes.
 
-## Verification
+## Local verification
 
-- Cross-platform CI: Windows, macOS, Linux; Python 3.10, 3.12, 3.13.
-- Deterministic unit, transaction, rollback, prompt-injection, budget, reporting, release and idempotency tests.
-- CodeQL, dependency review and tracked-source secret scan.
-- Live Codex canary вынесен в отдельный manual workflow. До фактического успешного запуска его статус остаётся `NOT_RUN`, а не PASS.
+- Один локальный harness выполняет deterministic tests, source verification, secret scan, reproducibility build, SBOM и asset verification.
+- Каждая проверка сохраняет `local-verification/latest.json` и `latest.log` с commit, ОС, Python, argv и return codes.
+- Официальный `--release` gate требует чистый Git checkout.
+- Поддержка конкретной ОС заявляется только после фактического PASS на этой ОС.
+- Live Codex canary запускается отдельно локально. До фактического успешного запуска его статус остаётся `NOT_RUN`, а не PASS.
 
 ## Compatibility
 
-v1.5.0 использует Python 3.10 или новее. Старые v1.4.0 release assets не переписываются; новый release должен публиковаться отдельным immutable tag после прохождения gates.
+v1.5.0 использует Python 3.10 или новее. Старые v1.4.0 release assets не переписываются; новый release публикуется отдельным tag после прохождения локальных gates.
