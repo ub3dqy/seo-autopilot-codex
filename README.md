@@ -1,19 +1,29 @@
 # SEO Autopilot for OpenAI Codex
 
-Evidence-driven SEO-аудит и консервативное внедрение исправлений в код сайта: с явными уровнями риска, изолированной Git-транзакцией, проверками, отчётом и rollback.
+Evidence-driven SEO-аудит и консервативное внедрение исправлений в код сайта: с явными уровнями риска, изолированной Git-транзакцией, локальными проверками, отчётом и rollback.
 
-[![CI](https://github.com/ub3dqy/seo-autopilot-codex/actions/workflows/ci.yml/badge.svg)](https://github.com/ub3dqy/seo-autopilot-codex/actions/workflows/ci.yml)
-[![Security](https://github.com/ub3dqy/seo-autopilot-codex/actions/workflows/security.yml/badge.svg)](https://github.com/ub3dqy/seo-autopilot-codex/actions/workflows/security.yml)
+## Важное ограничение среды
+
+Этот репозиторий **не использует GitHub Actions и не зависит от него**. Все обязательные gates выполняются локально одной командой и сохраняют машиночитаемое доказательство выполнения. Красный, отсутствующий или недоступный статус Actions не является частью приёмки продукта и релиза.
+
+Каноническими доказательствами считаются:
+
+```text
+local-verification/latest.json
+local-verification/latest.log
+```
+
+В JSON фиксируются commit, ветка, состояние Git-дерева, ОС, версия Python, точные команды, коды возврата, длительность и SHA-256 вывода каждого шага.
 
 ## Что изменилось в v1.5
 
-Канонические исходники, skill, policies, schemas, tests и workflows находятся в обычном просматриваемом дереве Git. Кодированный source bundle больше не является источником продукта. User и Engineering Edition собираются непосредственно из текущего commit.
+Канонические исходники, skill, policies, schemas, tests и локальные verification/release scripts находятся в обычном просматриваемом дереве Git. Кодированный source bundle больше не является источником продукта. User и Engineering Edition собираются непосредственно из текущего commit.
 
 Продукт разделяет:
 
 - **детерминированный локальный слой** — doctor, аудит, evidence, безопасные A-level исправления, Git-транзакция, проверки и отчёты;
 - **Codex skill** — естественный пользовательский интерфейс и обязательная модель поведения агента;
-- **live Codex canary** — отдельная ручная проверка фактического поведения Codex, которая честно остаётся `NOT_RUN`, пока её не запустили с доступной авторизацией.
+- **live Codex canary** — отдельная локальная проверка фактического поведения Codex, которая честно остаётся `NOT_RUN`, пока её не запустили с доступной авторизацией.
 
 ## Быстрый старт
 
@@ -125,27 +135,83 @@ seo-autopilot command-hash -- npm test
 
 Продукт не обещает ranking, indexing, traffic, rich results, AI citations или conversion. Отсутствующие Search Console, CrUX, PageSpeed, analytics, SERP или backlink данные обозначаются как ограничения, а не заменяются оценками «из головы».
 
-## Две редакции
+## Локальная проверка без GitHub Actions
 
-Собрать обе редакции:
+### Обычная детерминированная проверка
 
-### Windows
+Windows:
+
+```text
+VERIFY_LOCAL_WINDOWS.cmd
+```
+
+macOS / Linux:
+
+```bash
+./verify_local.sh
+```
+
+Прямой эквивалент:
+
+```bash
+python scripts/verify_local.py
+```
+
+Gate выполняет:
+
+- проверку Python и Git;
+- `compileall` для source/scripts/tests;
+- все unit, lifecycle, transaction, rollback, prompt-injection, budget, reporting, release и idempotency tests;
+- проверку manifest и generated-tree markers;
+- локальный tracked-source secret scan.
+
+### Сборка и проверка двух редакций
+
+Windows:
 
 ```text
 BUILD_EDITIONS_WINDOWS.cmd
 ```
 
-### macOS / Linux
+macOS / Linux:
 
 ```bash
 ./build_editions.sh
 ```
 
-Ручной эквивалент:
+Прямой эквивалент:
 
 ```bash
-python prepare_editions.py --build-zips
+python scripts/verify_local.py --build
 ```
+
+Дополнительно выполняются две независимые сборки с сравнением SHA-256, создание SPDX SBOM и проверка всех release assets. Сборщик не перезаписывает чужие или вручную изменённые output-каталоги.
+
+### Официальный локальный release gate
+
+```bash
+python scripts/verify_local.py --release
+```
+
+Этот режим дополнительно требует Git checkout и чистое рабочее дерево. Один запуск на одной ОС доказывает только указанную в `latest.json` среду. Для заявления о Windows/macOS/Linux проверку запускают отдельно на каждой заявляемой платформе и сохраняют каждый JSON-отчёт.
+
+### Реальный Codex canary
+
+```bash
+python scripts/verify_local.py --live
+```
+
+`NOT_RUN` допустим и не превращается в PASS. Для обязательного live-gate:
+
+```bash
+python scripts/verify_local.py --live --require-live
+```
+
+Подробнее: [Local verification](docs/local-verification.md), [Live eval](docs/live-eval.md), [Release process](docs/release-process.md).
+
+## Две редакции
+
+`User Edition` содержит необходимый runtime, skill, policy pack, schema и установщики. `Engineering Edition` дополнительно содержит полное source tree, docs, tests и локальные verification/release tools.
 
 Сборщик:
 
@@ -156,29 +222,12 @@ python prepare_editions.py --build-zips
 - выполняет атомарную замену;
 - создаёт детерминированные ZIP и вычисляет SHA-256.
 
-`User Edition` содержит необходимый runtime, skill, policy pack, schema и установщики. `Engineering Edition` дополнительно содержит полное source tree, docs, tests и release tooling.
-
-## Проверка
-
-Локальный gate:
-
-```bash
-python -m pip install --no-deps -e .
-python -m compileall -q src scripts tests prepare_editions.py
-python -m unittest discover -s tests -v
-python prepare_editions.py --verify-only
-python scripts/secret_scan.py
-```
-
-CI выполняет матрицу Windows/macOS/Linux и Python 3.10/3.12/3.13. Security workflow запускает CodeQL и dependency review. Tag-release повторяет gates, собирает ZIP, создаёт SPDX SBOM, общие SHA-256 и GitHub provenance attestation.
-
-Live Codex behavior не считается проверенным статическими тестами. Оно имеет отдельный ручной workflow `.github/workflows/live-eval.yml` и статусы `PASSED`, `FAILED` или `NOT_RUN`.
-
 ## Безопасность и документация
 
 - [Security policy](SECURITY.md)
 - [Safety model](docs/safety-model.md)
 - [Architecture](docs/architecture.md)
+- [Local verification](docs/local-verification.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Contributing](CONTRIBUTING.md)
 - [Support](SUPPORT.md)
