@@ -7,9 +7,12 @@ Run:
 ```bash
 seo-autopilot doctor . --json
 seo-autopilot audit .
+python scripts/verify_local.py
 ```
 
-Attach only sanitized output. The most useful files are the product version, `run.json`, validator names and statuses, detected stack, and a minimal fixture that contains no private data.
+Attach only sanitized output. The most useful files are the product version, `run.json`, validator names and statuses, detected stack, `local-verification/latest.json`, and a minimal fixture that contains no private data.
+
+GitHub Actions is not used. Do not report a missing workflow as a product failure; report the exact failing local command and return code from the JSON evidence.
 
 ## Public issues
 
