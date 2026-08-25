@@ -11,9 +11,10 @@ Report suspected vulnerabilities through GitHub private security advisories. Do 
 A useful report contains:
 
 - affected version and commit;
-- operating system and Codex CLI version;
+- operating system, Python and Codex CLI version;
 - minimal sanitized fixture;
 - exact command and observed result;
+- sanitized `local-verification/latest.json` where relevant;
 - impact and trust-boundary crossing;
 - whether files, branches, credentials, network resources, or production systems were affected.
 
@@ -30,12 +31,20 @@ SEO Autopilot is designed so that:
 7. canonical, robots, noindex, redirects, routes, schema, content, deployment, and deletion are never automatic;
 8. failed validation triggers rollback of the isolated worktree and branch;
 9. no command pushes, merges, deploys, publishes, or changes remote resources;
-10. generated reports redact no secrets automatically and therefore must be reviewed before sharing.
+10. persisted harness and product output is passed through centralized high-confidence secret redaction, but reports must still be reviewed before sharing.
 
 ## Out of scope
 
 The project does not claim to secure an already compromised host, malicious Python interpreter, malicious Git binary, compromised dependency source, or owner-approved arbitrary command. A checksum confirms the exact configured argv, not that the selected executable is benign.
 
-## Release verification
+## Local release verification
 
-Tagged releases are intended to be built by `.github/workflows/release.yml`, accompanied by SHA-256 checksums, an SPDX source SBOM, and GitHub artifact provenance. Release immutability and branch protection are repository settings and must also be enabled by the owner.
+GitHub Actions is not used. Official release evidence is generated from a clean Git checkout with:
+
+```bash
+python scripts/verify_local.py --release
+```
+
+The gate records the exact commit and environment, runs deterministic tests and secret scanning, performs two release builds, compares computed hashes, creates an SPDX source SBOM, and verifies local assets against `SHA256SUMS`.
+
+A PASS on one operating system proves only that recorded environment. Release immutability, branch protection, private vulnerability reporting, secret scanning/push protection, signed tags and publication permissions are repository settings and remain explicit owner decisions.
