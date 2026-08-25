@@ -55,9 +55,11 @@ def safe_environment() -> dict[str, str]:
         "PERL5OPT",
     }
     env = {key: value for key, value in os.environ.items() if key not in blocked}
+    # Preserve Git's effective system configuration. Git for Windows commonly
+    # stores core.autocrlf there; disabling it after checkout can make a clean
+    # CRLF worktree appear dirty. Hooks are disabled explicitly by Git callers.
     env.update(
         {
-            "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_TERMINAL_PROMPT": "0",
             "HUSKY": "0",
             "PAGER": "cat",
