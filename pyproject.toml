@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seo-autopilot-codex"
+dynamic = ["version"]
+description = "Evidence-driven SEO audit and conservative remediation for OpenAI Codex"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE.md" }
+authors = [{ name = "ub3dqy" }]
+keywords = ["codex", "seo", "audit", "automation", "agent-skill"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: Other/Proprietary License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13"
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["build>=1.2", "jsonschema>=4.23"]
+
+[project.scripts]
+seo-autopilot = "seo_autopilot.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+[tool.setuptools.data-files]
+"share/seo-autopilot/skills/seo-autopilot" = ["skills/seo-autopilot/SKILL.md"]
+"share/seo-autopilot/policy-packs/google-search/2026-08" = ["policy-packs/google-search/2026-08/policies.json"]
+"share/seo-autopilot/schemas" = ["schemas/run.schema.json"]
+
+[tool.unittest]
+start-directory = "tests"

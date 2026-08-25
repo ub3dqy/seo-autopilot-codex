@@ -1,23 +1,48 @@
-# SEO Autopilot for OpenAI Codex v1.4.0
+# SEO Autopilot for OpenAI Codex v1.5.0
 
-Репозиторий содержит две отдельные редакции:
+## Trust and transparency
 
-- **User Edition** — простая установка, автоматический выбор SEO-режима и один сквозной цикл аудит → безопасные исправления → проверки → итог;
-- **Engineering Edition** — полный skill, contracts, gates, validators, tests, evals и средства воспроизводимой сборки.
+- Канонические исходники, skill, policies, schemas, tests и release tooling опубликованы обычными просматриваемыми файлами.
+- Непрозрачный base64/xz source bundle исключён из канонического дерева.
+- User и Engineering Edition собираются непосредственно из текущего commit.
+- `VERSION` является единственным источником номера версии.
+- Output-каталоги имеют marker, проверку локальных изменений и атомарную замену.
+- Детерминированные ZIP получают вычисленные SHA-256 и проверяются повторной сборкой.
 
-Обе редакции находятся в проверяемом source bundle. Команда `python prepare_editions.py --build-zips` материализует каталоги `user/` и `engineering/` и собирает точные релизные архивы.
+## Transactional Autopilot
 
-## Проверка
+- Добавлены `doctor`, `audit`, `fix`, `rollback`, `verify`, `install-skill` и `command-hash`.
+- Введены уровни `A_AUTO_FIX`, `B_REVIEW_REQUIRED`, `C_ADVISORY_ONLY`.
+- Автоматическое применение ограничено механически доказанными исправлениями; начальный адаптер добавляет отсутствующие размеры локальных PNG/JPEG/GIF/WebP.
+- Fix mode работает в изолированном Git worktree, отключает hooks, создаёт локальную ветку и не реализует push/merge/deploy.
+- Проектные команды разрешены только как точный argv без shell и с подтверждённым SHA-256.
+- Добавлены бюджеты, `git diff --check`, trusted validators, повторный аудит, идемпотентность и rollback.
 
-- deterministic unit, fixture и lifecycle tests: 29/29 PASS;
-- static behavioral contracts: 24/24 PASS;
-- package и manifest verification: PASS;
-- live autonomous Codex behavior: NOT_RUN и не обозначается как PASS.
+## Evidence and reports
 
-## SHA-256
+- Каждый finding содержит ID, rule, severity, risk, confidence, path/line, evidence и status.
+- Каждый запуск формирует `run.json`, `report.md`, `report.html` и transaction state.
+- Policy pack версионирован и ссылается на первичные источники.
+- Отчёты проходят централизованную высокоточную редакцию секретов.
+- Не обещаются ranking, indexing, traffic или rich-result outcomes.
+
+## Verification
+
+Обязательный gate выполняется локально:
+
+```bash
+python scripts/verify_local.py
+```
+
+Он включает компиляцию, unit/adversarial/transaction tests, prompt-injection boundary, rollback, идемпотентность, secret scan, schema/report checks, чистую установку User Edition, две детерминированные сборки и проверку восстановленных релизных файлов.
 
 ```text
-e03e522fb7767ad7597452fac78cb982aac4c83337573054a32b3f19516d399e  seo-autopilot-codex-user-v1.4.0.zip
-27791aa36257d878c87bc591a03f25ff21ec79fec5251ef34c4a2fe67126db45  seo-autopilot-codex-engineering-v1.4.0.zip
-5f96d6ddc4bc4211599d6399fe287e08f44012d20011b5dd9898e913e8b82a28  source-bundle-v1.4.0.tar.xz
+GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
+Release gate: LOCAL VERIFICATION ONLY
 ```
+
+GitHub Actions не является частью release gate. В релизном дереве отсутствуют активные workflow-файлы.
+
+## Compatibility
+
+v1.5.0 использует Python 3.10 или новее. Старые v1.4.0 артефакты не переписываются; исправления публикуются новой версией и новым набором SHA-256.

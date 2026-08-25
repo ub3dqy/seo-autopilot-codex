@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "product": "seo-autopilot-codex",
+  "version_file": "VERSION",
+  "python_requires": ">=3.10",
+  "artifacts": {
+    "user": "seo-autopilot-codex-user-v{version}.zip",
+    "engineering": "seo-autopilot-codex-engineering-v{version}.zip",
+    "sbom": "seo-autopilot-codex-v{version}.spdx.json"
+  },
+  "editions": {
+    "user": [
+      "VERSION",
+      "LICENSE.md",
+      "USER_EDITION.md",
+      "pyproject.toml",
+      "MANIFEST.in",
+      "src",
+      "skills",
+      "policy-packs",
+      "schemas",
+      "install.sh",
+      "INSTALL_WINDOWS.cmd"
+    ],
+    "engineering": [
+      ".github",
+      "VERSION",
+      "LICENSE.md",
+      "README.md",
+      "USER_EDITION.md",
+      "ENGINEERING_EDITION.md",
+      "CHANGELOG.md",
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "SUPPORT.md",
+      "pyproject.toml",
+      "MANIFEST.in",
+      "release-manifest.json",
+      "prepare_editions.py",
+      "verify_local.sh",
+      "VERIFY_LOCAL_WINDOWS.cmd",
+      "build_editions.sh",
+      "BUILD_EDITIONS_WINDOWS.cmd",
+      "install.sh",
+      "INSTALL_WINDOWS.cmd",
+      "src",
+      "skills",
+      "policy-packs",
+      "schemas",
+      "scripts",
+      "tests",
+      "docs"
+    ]
+  }
+}

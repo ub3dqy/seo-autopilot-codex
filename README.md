@@ -1,17 +1,122 @@
 # SEO Autopilot for OpenAI Codex
 
-Отдельный публичный репозиторий SEO-инструмента для OpenAI Codex. Здесь находятся **две редакции одного продукта**:
+SEO Autopilot — evidence-driven инструмент для аудита SEO и консервативного внедрения исправлений в код сайта. Он отделяет проверяемые локальные факты от предположений, использует явные уровни риска, изолированную Git-транзакцию, валидацию, отчёты и rollback.
 
-- **User Edition** — простая установка и запуск без ручного выбора режимов и промптов;
-- **Engineering Edition** — полный исходный пакет с contracts, gates, validators, tests, evals и средствами воспроизводимой сборки.
+Версия: **1.5.0**.
 
-Никакого отношения к Claude Code этот репозиторий не имеет.
-
-## Получить обе редакции
+## Быстрый старт
 
 ### Windows
 
-Дважды щёлкните:
+Запустите:
+
+```text
+INSTALL_WINDOWS.cmd
+```
+
+### macOS / Linux
+
+```bash
+./install.sh
+```
+
+После установки откройте репозиторий сайта в Codex и напишите:
+
+```text
+Проведи SEO-аудит этого сайта. Сначала только аудит и отчёт, без изменений.
+```
+
+Для применения только механически доказанных исправлений:
+
+```text
+Исправь только A-level замечания SEO Autopilot, выполни проверки и оставь изменения в отдельной локальной ветке. Ничего не отправляй и не развёртывай.
+```
+
+Прямой CLI:
+
+```bash
+seo-autopilot doctor . --json
+seo-autopilot audit .
+seo-autopilot fix .
+```
+
+Дополнительные команды:
+
+```bash
+seo-autopilot verify .seo-autopilot/runs/<run-id>/run.json
+seo-autopilot rollback --state .seo-autopilot/runs/<run-id>/state.json
+seo-autopilot command-hash -- npm test
+seo-autopilot install-skill
+```
+
+## Модель риска
+
+| Уровень | Поведение | Примеры |
+|---|---|---|
+| `A_AUTO_FIX` | Автоматическое применение только после механического доказательства точного результата | отсутствующие `width`/`height`, прочитанные из заголовка локального PNG/JPEG/GIF/WebP |
+| `B_REVIEW_REQUIRED` | Evidence и рекомендация; требуется просмотр владельца | title, description, lang, alt, canonical, sitemap, internal links, JSON-LD, hreflang |
+| `C_ADVISORY_ONLY` | Только отчёт | noindex, robots, redirects, URL/routes, удаление страниц, production/deployment |
+
+Модель и Codex не могут понизить B или C до A. Расширение A-level требует нового детерминированного адаптера и тестов.
+
+## Что делает `fix`
+
+1. Проверяет Git, стек и чистоту рабочего дерева.
+2. Фиксирует исходный commit, evidence и план.
+3. Создаёт временный worktree вне рабочего каталога владельца.
+4. Создаёт локальную ветку `seo-autopilot/<run-id>`.
+5. Применяет только A-level изменения в пределах бюджетов.
+6. Запускает `git diff --check`, явно доверенные проектные проверки и повторный аудит.
+7. Считает повторно предложенное A-level исправление ошибкой идемпотентности.
+8. При ошибке удаляет временный worktree и транзакционную ветку; при успехе оставляет локальный commit для просмотра.
+
+Команда не содержит push, merge, deploy или публикацию.
+
+## Доверенные проектные проверки
+
+Команды не извлекаются из README, HTML, `package.json`, Makefile, issue-текста или ответа модели. Они запускаются только как точный argv-массив без shell и с подтверждённым SHA-256.
+
+```json
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "name": "project tests",
+      "argv": ["npm", "test"],
+      "sha256": "DIGEST_FROM_SEO_AUTOPILOT_COMMAND_HASH",
+      "timeout_seconds": 300
+    }
+  ]
+}
+```
+
+Получить digest:
+
+```bash
+seo-autopilot command-hash -- npm test
+```
+
+## Результаты запуска
+
+Каждый запуск формирует:
+
+```text
+.seo-autopilot/runs/<run-id>/
+  run.json       машиночитаемый источник истины
+  report.md      отчёт для code review
+  report.html    автономный HTML-отчёт
+  state.json     состояние транзакции и rollback
+```
+
+Каждое замечание содержит finding ID, policy rule, severity, risk, confidence, path/line, evidence и статус `OPEN`, `FIXED`, `SKIPPED` или `DEFERRED`.
+
+Продукт не обещает ranking, indexing, traffic, rich results, AI citations или conversion. Отсутствующие Search Console, CrUX, PageSpeed, analytics, SERP или backlink данные обозначаются как ограничения, а не заменяются догадками.
+
+## Две редакции
+
+Собрать User и Engineering Edition:
+
+### Windows
 
 ```text
 BUILD_EDITIONS_WINDOWS.cmd
@@ -23,41 +128,53 @@ BUILD_EDITIONS_WINDOWS.cmd
 ./build_editions.sh
 ```
 
-Скрипт проверит встроенный source bundle, развернёт каталоги `user/` и `engineering/`, затем соберёт точные релизные ZIP в `dist/`.
-
 Ручной эквивалент:
 
 ```bash
+python scripts/verify_local.py
 python prepare_editions.py --build-zips
+python scripts/verify_release.py dist
 ```
 
-## Запуск User Edition
+Сборщик читает версию из `VERSION`, проверяет `release-manifest.json`, запрещает symlink и выход из source root, защищает сгенерированные каталоги от случайной перезаписи и создаёт детерминированные ZIP с SHA-256.
 
-После сборки:
+## Обязательная проверка
 
-1. откройте `user/` или распакуйте `dist/seo-autopilot-codex-user-v1.4.0.zip`;
-2. в Windows запустите `1_INSTALL_WINDOWS.cmd`, затем `2_RUN_SEO_WINDOWS.cmd`;
-3. либо откройте проект в Codex и напишите:
+Единственный обязательный release gate:
+
+```bash
+python scripts/verify_local.py
+```
+
+Windows-обёртка:
 
 ```text
-Проведи SEO-оптимизацию этого сайта.
+VERIFY_LOCAL_WINDOWS.cmd
 ```
 
-## Engineering Edition
+Проверяются компиляция, unit/adversarial/transaction tests, prompt-injection boundary, rollback, идемпотентность, secret scan, структура `run.json`, установка User Edition, двойная детерминированная сборка, восстановление релизных файлов и SHA-256.
 
-Каталог `engineering/` и архив `dist/seo-autopilot-codex-engineering-v1.4.0.zip` содержат канонический skill, установщики, validators, tests, eval harness и release tooling.
-
-## Контрольные суммы v1.4.0
+### Статус hosted CI
 
 ```text
-e03e522fb7767ad7597452fac78cb982aac4c83337573054a32b3f19516d399e  seo-autopilot-codex-user-v1.4.0.zip
-27791aa36257d878c87bc591a03f25ff21ec79fec5251ef34c4a2fe67126db45  seo-autopilot-codex-engineering-v1.4.0.zip
-5f96d6ddc4bc4211599d6399fe287e08f44012d20011b5dd9898e913e8b82a28  source-bundle-v1.4.0.tar.xz
+GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
+Release gate: LOCAL VERIFICATION ONLY
 ```
 
-## Проверенный статус
+В репозитории нет активных `.github/workflows/*.yml` или `.yaml`. Состояние GitHub Actions не используется как критерий готовности и не заменяет локальный verification report.
 
-- deterministic unit, fixture и lifecycle tests: **29/29 PASS**;
-- static behavioral contracts: **24/24 PASS**;
-- package, manifest и reproducibility checks: **PASS**;
-- live autonomous Codex suite: **NOT_RUN** и не обозначается как PASS.
+## Документация
+
+- [Local verification](docs/local-verification.md)
+- [Security policy](SECURITY.md)
+- [Safety model](docs/safety-model.md)
+- [Architecture](docs/architecture.md)
+- [Release process](docs/release-process.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Contributing](CONTRIBUTING.md)
+- [Support](SUPPORT.md)
+- [Changelog](CHANGELOG.md)
+
+## Лицензия
+
+Репозиторий публично доступен для просмотра, но остаётся proprietary/source-available согласно `LICENSE.md` и не позиционируется как open source. Публичный доступ сам по себе не предоставляет право на изменение, перераспространение, сублицензирование или продажу.

@@ -1,0 +1,31 @@
+name: Feature request
+description: Propose an evidence-backed capability or policy change.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and user outcome
+      description: Describe the concrete workflow problem rather than only a preferred implementation.
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Expected risk level
+      options: [A_AUTO_FIX, B_REVIEW_REQUIRED, C_ADVISORY_ONLY, Unsure]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Primary sources and fixtures
+      description: Link authoritative documentation and describe deterministic test cases.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and rollback considerations
+      description: Explain trust boundaries, failure modes, and how the change can be verified or rolled back.

@@ -1,0 +1,34 @@
+name: Bug report
+description: Report a reproducible failure without including secrets or private site data.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not paste tokens, credentials, private repositories, customer data, or complete production reports.
+  - type: input
+    id: version
+    attributes:
+      label: SEO Autopilot version
+      placeholder: 1.5.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [Windows, macOS, Linux]
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Include sanitized local commands, fixture structure, expected result, and actual result.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized local evidence
+      description: Attach a redacted run.json or output from scripts/verify_local.py when possible.
