@@ -15,9 +15,11 @@ Describe one coherent change and the user-visible outcome.
 - [ ] Commands use argv arrays and no shell interpolation.
 - [ ] Transaction, rollback, budgets, and dirty-tree behavior were considered.
 
-## Verification
+## Local verification
 
-- [ ] `python -m unittest discover -s tests -v`
-- [ ] `python prepare_editions.py --verify-only`
-- [ ] `python scripts/secret_scan.py`
+GitHub Actions is not used.
+
+- [ ] `python scripts/verify_local.py`
+- [ ] `local-verification/latest.json` belongs to the reviewed commit and reports `PASS`.
+- [ ] The reported operating system is stated; no untested platform is claimed.
 - [ ] Second application is idempotent when mutation is involved.
