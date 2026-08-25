@@ -1,27 +1,48 @@
-# Local release process
+# Release process
 
-GitHub Actions is not used and is not a release dependency.
+## Source of truth
 
-1. Check out the exact commit intended for release and confirm the branch is clean.
-2. Update `VERSION`, `CHANGELOG.md`, and `RELEASE_NOTES.md` in one reviewed change.
-3. Run the official local gate:
+```text
+GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
+Release gate: LOCAL VERIFICATION ONLY
+```
+
+GitHub Actions is not used to build, test or publish this project. Do not create a tag or release from an unverified working tree.
+
+## Required sequence
+
+1. Update `VERSION`, `CHANGELOG.md` and `RELEASE_NOTES.md` in one coherent branch.
+2. Start from a clean Git checkout and record the exact commit.
+3. Run:
 
    ```bash
-   python scripts/verify_local.py --release
+   python scripts/verify_local.py
    ```
 
-4. Inspect `local-verification/latest.json`. Required conditions are `status: PASS`, the expected `git_head`, and `git_dirty: false`.
-5. When Codex credentials are available, run the live canary separately and record `PASSED`, `FAILED`, or `NOT_RUN` without conflation:
+4. Confirm the report records PASS for compilation, tests, secret scan, source verification, clean installation, two deterministic builds, restore verification and SHA-256.
+5. Run the manual live Codex canary when local authentication is available; record `PASSED`, `FAILED` or `NOT_RUN` separately. `NOT_RUN` is never a deterministic PASS.
+6. Build final assets from the same verified commit:
 
    ```bash
-   python scripts/verify_local.py --live --require-live
+   python prepare_editions.py --build-zips
+   python scripts/verify_release.py dist
    ```
 
-6. For every platform claimed in release notes, repeat the same commit on that platform and retain its JSON/log evidence. One machine cannot prove another platform.
-7. Review `dist/SHA256SUMS`, `dist/release-build.json`, the two deterministic ZIPs and the SPDX SBOM.
-8. Create a protected or signed tag `v<VERSION>` only after the required local reports pass.
-9. Publish the already verified files from `dist/` manually with GitHub CLI or the GitHub UI. Do not rebuild different bytes during publication.
-10. Verify downloaded assets against `SHA256SUMS` before announcing the release.
-11. Never overwrite an existing tag or release asset. Publish a new patch version for corrections.
+7. Recompute and compare SHA-256 with the local verification evidence.
+8. Review the complete diff and confirm that `.github/workflows/` contains no `.yml` or `.yaml` files.
+9. Merge only the verified source tree. If the merge method changes the commit SHA, confirm that the resulting Git tree is identical to the verified branch tree.
+10. Create tag `v<VERSION>` on the verified `main` commit.
+11. Create a GitHub Release manually and attach:
 
-The local tooling never pushes, merges, tags, publishes or deploys automatically. Repository settings such as branch protection, private vulnerability reporting, secret scanning/push protection and immutable releases remain explicit owner decisions.
+    - User Edition ZIP;
+    - Engineering Edition ZIP;
+    - `SHA256SUMS`;
+    - release manifest/build report;
+    - sanitized local verification report and log;
+    - optional SPDX SBOM.
+
+12. Download the published assets and verify them again against `SHA256SUMS` before announcing the release.
+
+## Immutability
+
+Do not overwrite an existing tag or release asset. Publish a patch version for corrections. Repository settings such as branch protection, private vulnerability reporting, secret scanning and immutable releases remain explicit owner controls.
