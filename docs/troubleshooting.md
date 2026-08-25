@@ -2,71 +2,54 @@
 
 ## `fix mode requires a clean working tree`
 
-Commit, stash, or deliberately move your work first. SEO Autopilot does not silently exclude local changes and does not use `--force` to bypass this gate.
+Commit, stash or deliberately move your work first. SEO Autopilot does not silently exclude local changes and does not use `--force` to bypass this gate.
 
 ```bash
 git status --short
 seo-autopilot doctor . --json
 ```
 
-## Local verification failed
-
-Open both evidence files:
-
-```text
-local-verification/latest.log
-local-verification/latest.json
-```
-
-The JSON identifies the exact failing argv, return code, environment and commit. Fix the cause and rerun the same local command. Do not create repeated remote runs and do not weaken the gate merely to obtain PASS.
-
 ## `digest mismatch` for a project check
 
-The argv changed after approval. Review the exact executable and every argument, calculate a new digest, and update `.seo-autopilot.json` only when the change is intentional.
+The argv changed after approval. Review the exact executable and every argument, calculate a new digest and update `.seo-autopilot.json` only when the change is intentional.
 
 ```bash
 seo-autopilot command-hash -- npm test
 ```
 
-Example configuration:
-
-```json
-{
-  "schema_version": 1,
-  "checks": [
-    {
-      "name": "project tests",
-      "argv": ["npm", "test"],
-      "sha256": "PASTE_THE_EXACT_DIGEST_HERE",
-      "timeout_seconds": 300
-    }
-  ]
-}
-```
-
-## Existing `user/`, `engineering/`, or `dist/` is not managed
+## Existing `user/`, `engineering/` or `dist/` is not managed
 
 The release builder refuses to overwrite an unmarked directory. Move it aside and compare it, or use `--force` only after confirming it contains no unique work.
 
 ```bash
 python prepare_editions.py --verify-only
-python scripts/verify_local.py --build
+python prepare_editions.py --build-zips
 ```
 
 ## Generated directory has local modifications
 
 The marker hash no longer matches. Preserve the local diff before rebuilding. Generated outputs are not the canonical source; accepted changes belong in the tracked source tree.
 
-## Official release gate reports a dirty tree
+## Local verification failed
 
-`--release` deliberately refuses uncommitted source changes. Commit the reviewed checkpoint and rerun:
+Run the authoritative gate directly and preserve its complete output:
 
 ```bash
-git status --short
-python scripts/verify_local.py --release
+python scripts/verify_local.py
 ```
 
-`--allow-dirty-release` exists only for diagnosis and must not be used as evidence for an official release.
+Do not weaken or skip a failed check. Fix the first failing phase, then rerun the entire gate from a clean checkout.
+
+## GitHub Actions is red or unavailable
+
+This is an acknowledged external condition, not the project release gate:
+
+```text
+GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
+Release gate: LOCAL VERIFICATION ONLY
+```
+
+Do not rerun workflows or treat an Actions badge as test evidence. The final branch must contain no active `.github/workflows/*.yml` or `.yaml` files.
 
 ## Fix validation failed
 
@@ -89,14 +72,12 @@ The stack was detected, but no deterministic adapter owns its framework metadata
 
 ## Live Codex canary is `NOT_RUN`
 
-`NOT_RUN` means the CLI or authentication was unavailable. It is not a failure of deterministic tests and must not be represented as a live PASS. Configure local Codex authentication and run:
+`NOT_RUN` means the local Codex CLI or authentication was unavailable. It is not a failure of deterministic tests and must not be represented as a live PASS.
 
 ```bash
-python scripts/verify_local.py --live
+python scripts/live_codex_eval.py --timeout 900 --output artifacts/live-codex-eval.json
 ```
-
-Use `--require-live` only when an actual live PASS is mandatory.
 
 ## Reports contain sensitive excerpts
 
-Reports are local artifacts and may include short source excerpts. Review and redact them before attaching to an issue or sharing outside the project.
+Reports may include short repository excerpts. High-confidence patterns are redacted, but every report must still be reviewed before attaching it to an issue or sharing it outside the project.
