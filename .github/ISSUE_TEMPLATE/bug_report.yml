@@ -16,8 +16,8 @@ body:
   - type: dropdown
     id: platform
     attributes:
-      label: Platform
-      options: [Windows, macOS, Linux, GitHub Actions]
+      label: Platform actually tested
+      options: [Windows, macOS, Linux]
     validations:
       required: true
   - type: textarea
@@ -30,5 +30,5 @@ body:
   - type: textarea
     id: evidence
     attributes:
-      label: Sanitized evidence
-      description: Attach a redacted run.json or validator output when possible.
+      label: Sanitized local evidence
+      description: Attach a redacted run.json and local-verification/latest.json when possible. Do not attach secrets or private source content.
