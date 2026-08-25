@@ -17,13 +17,27 @@ Do not submit credentials, private site content, customer information, generated
 
 ## Development gate
 
-```bash
-python -m pip install --no-deps -e .
-python -m compileall -q src scripts tests prepare_editions.py
-python -m unittest discover -s tests -v
-python prepare_editions.py --verify-only
-python scripts/secret_scan.py
+GitHub Actions is not used. Run the tracked local gate:
+
+### Windows
+
+```text
+VERIFY_LOCAL_WINDOWS.cmd
 ```
+
+### macOS / Linux
+
+```bash
+./verify_local.sh
+```
+
+Direct equivalent:
+
+```bash
+python scripts/verify_local.py
+```
+
+Attach or retain `local-verification/latest.json` for the exact commit under review. Never claim another operating system passed unless the same commit was actually checked there.
 
 Mutation-related changes must also prove:
 
@@ -41,4 +55,4 @@ SEO policies are versioned. Do not silently rewrite an old policy pack. Add a ne
 
 ## Pull requests
 
-Keep each pull request coherent and reviewable. A maintainer may squash commits when merging. Passing automation is necessary but not sufficient; safety, evidence quality, licensing, and public claims remain owner decisions.
+Keep each pull request coherent and reviewable. A maintainer may squash commits when merging. A local PASS is necessary but not sufficient; safety, evidence quality, licensing, and public claims remain owner decisions.
