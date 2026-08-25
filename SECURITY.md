@@ -6,17 +6,16 @@ Security fixes are developed for the current minor release line. Older release a
 
 ## Private reporting
 
-Report suspected vulnerabilities through GitHub private security advisories. Do not disclose secrets, exploit details, private repositories, customer data, or production reports in a public issue.
+Report suspected vulnerabilities through GitHub private security advisories. Do not disclose secrets, exploit details, private repositories, customer data or production reports in a public issue.
 
 A useful report contains:
 
 - affected version and commit;
-- operating system, Python and Codex CLI version;
+- operating system, Python and Codex CLI versions;
 - minimal sanitized fixture;
-- exact command and observed result;
-- sanitized `local-verification/latest.json` where relevant;
+- exact local command and observed result;
 - impact and trust-boundary crossing;
-- whether files, branches, credentials, network resources, or production systems were affected.
+- whether files, branches, credentials, network resources or production systems were affected.
 
 ## Security properties
 
@@ -28,23 +27,28 @@ SEO Autopilot is designed so that:
 4. mutations occur in an isolated Git worktree and owned local branch;
 5. Git hooks are disabled for automated commits;
 6. only mechanically proven A-level fixes can be automatic;
-7. canonical, robots, noindex, redirects, routes, schema, content, deployment, and deletion are never automatic;
+7. canonical, robots, noindex, redirects, routes, schema, content, deployment and deletion are never automatic;
 8. failed validation triggers rollback of the isolated worktree and branch;
-9. no command pushes, merges, deploys, publishes, or changes remote resources;
-10. persisted harness and product output is passed through centralized high-confidence secret redaction, but reports must still be reviewed before sharing.
+9. no runtime command pushes, merges, deploys, publishes or changes remote resources;
+10. generated reports apply centralized high-confidence secret redaction and still require review before sharing.
 
 ## Out of scope
 
-The project does not claim to secure an already compromised host, malicious Python interpreter, malicious Git binary, compromised dependency source, or owner-approved arbitrary command. A checksum confirms the exact configured argv, not that the selected executable is benign.
+The project does not claim to secure an already compromised host, malicious Python interpreter, malicious Git binary, compromised dependency source or owner-approved arbitrary command. A checksum confirms the exact configured argv, not that the selected executable is benign.
 
-## Local release verification
+## Local verification
 
-GitHub Actions is not used. Official release evidence is generated from a clean Git checkout with:
+The mandatory security and release gate is:
 
 ```bash
-python scripts/verify_local.py --release
+python scripts/verify_local.py
 ```
 
-The gate records the exact commit and environment, runs deterministic tests and secret scanning, performs two release builds, compares computed hashes, creates an SPDX source SBOM, and verifies local assets against `SHA256SUMS`.
+It includes tracked-source secret scanning, transaction and rollback tests, prompt-injection fixtures, command-trust tests, report escaping/redaction, deterministic packaging and release restore verification.
 
-A PASS on one operating system proves only that recorded environment. Release immutability, branch protection, private vulnerability reporting, secret scanning/push protection, signed tags and publication permissions are repository settings and remain explicit owner decisions.
+```text
+GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
+Release gate: LOCAL VERIFICATION ONLY
+```
+
+There are no active workflow files. Hosted CI, CodeQL and dependency-review statuses are not claimed as completed checks. Repository-level settings such as branch protection, private vulnerability reporting and secret scanning remain separate owner controls.
