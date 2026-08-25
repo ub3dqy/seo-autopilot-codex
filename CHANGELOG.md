@@ -7,7 +7,7 @@ All notable product, policy, safety and release-process changes are recorded her
 ### Added
 
 - root-level `START_AUTOPILOT.md` and `START_AUTOPILOT_EN.md` bootstrap prompts for launching from an already open website workspace;
-- one-link Codex workflow that keeps the current website folder as target, pins the verified v1.5.0 User Edition and checks its SHA-256 before execution;
+- one-link Codex workflow that keeps the current website folder as target, downloads the verified v1.5.0 Engineering Edition into a temporary directory, and checks its SHA-256 before execution;
 - explicit handling of audit/fix exit codes, framework-source limitations, A/B/C risk boundaries, transaction evidence and rollback in the remote bootstrap contract.
 
 ### Changed

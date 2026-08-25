@@ -2,7 +2,7 @@
 
 SEO Autopilot — evidence-driven инструмент для аудита SEO и консервативного внедрения исправлений в код сайта. Он отделяет проверяемые локальные факты от предположений, использует явные уровни риска, изолированную Git-транзакцию, валидацию, отчёты и rollback.
 
-Версия закреплённой поставки: **v1.5.0**.
+Версия закреплённого runtime: **v1.5.0**.
 
 ## Запустить из папки сайта одной фразой
 
@@ -20,18 +20,19 @@ SEO Autopilot — evidence-driven инструмент для аудита SEO �
 
 > **Codex:** если владелец дал ссылку на этот репозиторий из уже открытой папки сайта, текущая папка является target workspace, а этот репозиторий — только источником инструмента. Выполни [START_AUTOPILOT.md](START_AUTOPILOT.md), а не редактируй или клонируй SEO Autopilot поверх сайта.
 
-Bootstrap сам предписывает Codex проверить закреплённую User Edition v1.5.0 и её SHA-256, выполнить read-only preflight, провести аудит, применить только механически доказанные A-level исправления в изолированной локальной ветке, проверить результат и сформировать JSON/Markdown/HTML evidence и rollback. Пользователю не требуется вручную скачивать архив, указывать путь, стек или команды установки.
+Bootstrap сам предписывает Codex скачать во временный каталог закреплённую Engineering Edition v1.5.0, проверить SHA-256, запустить runtime непосредственно из проверенной поставки, выполнить read-only preflight и аудит, применить только механически доказанные A-level исправления в изолированной локальной ветке, проверить результат и сформировать JSON/Markdown/HTML evidence и rollback. Пользователю не требуется вручную скачивать архив, указывать путь, стек или команды установки.
 
 - [Полный универсальный bootstrap-промт на русском](START_AUTOPILOT.md)
 - [Universal bootstrap prompt in English](START_AUTOPILOT_EN.md)
 - [Официальный Release v1.5.0](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.0)
 
-Закреплённая User Edition:
+Закреплённый bootstrap runtime:
 
 ```text
-Asset:  seo-autopilot-codex-user-v1.5.0.zip
-SHA-256: 012ed6aba0c86f0a558efe6d88aad064dddcbaeeb725070434979bc73cd38589
-Source: f2b272f8a1bf917470b09378a938fee068e4cf8e
+Asset:    seo-autopilot-codex-engineering-v1.5.0.zip
+SHA-256: df7bec3c84c30b8b56c97dced52a384c1e9cbdeef424f6a474eaa746e46ed6e9
+Source:   f2b272f8a1bf917470b09378a938fee068e4cf8e
+Git tree: 7fa55a6ace25a59b2d4ede821182365a233932f2
 ```
 
 ## Ручная установка и прямой запуск
