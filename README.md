@@ -2,9 +2,40 @@
 
 SEO Autopilot — evidence-driven инструмент для аудита SEO и консервативного внедрения исправлений в код сайта. Он отделяет проверяемые локальные факты от предположений, использует явные уровни риска, изолированную Git-транзакцию, валидацию, отчёты и rollback.
 
-Версия: **1.5.0**.
+Версия закреплённого runtime: **v1.5.0**.
 
-## Быстрый старт
+## Запустить из папки сайта одной фразой
+
+Откройте в Codex папку или Git-репозиторий сайта, который нужно улучшить, и напишите:
+
+```text
+Работай в текущей открытой папке как в целевом проекте сайта. Пойди по адресу https://github.com/ub3dqy/seo-autopilot-codex и начни улучшение SEO этого сайта. Полностью выполни START_AUTOPILOT.md, не ограничивайся установкой или планом и заверши один полный безопасный SEO-checkpoint с фактическим evidence.
+```
+
+Более однозначный вариант с прямой ссылкой на bootstrap-промт:
+
+```text
+Работай в текущей открытой папке как в целевом проекте сайта. Прочитай и полностью выполни официальный bootstrap-промт SEO Autopilot: https://raw.githubusercontent.com/ub3dqy/seo-autopilot-codex/main/START_AUTOPILOT.md . Не переключай целевой workspace на репозиторий инструмента. Заверши один полный безопасный SEO-checkpoint и выдай фактическое evidence.
+```
+
+> **Codex:** если владелец дал ссылку на этот репозиторий из уже открытой папки сайта, текущая папка является target workspace, а этот репозиторий — только источником инструмента. Выполни [START_AUTOPILOT.md](START_AUTOPILOT.md), а не редактируй или клонируй SEO Autopilot поверх сайта.
+
+Bootstrap сам предписывает Codex скачать во временный каталог закреплённую Engineering Edition v1.5.0, проверить SHA-256, запустить runtime непосредственно из проверенной поставки, выполнить read-only preflight и аудит, применить только механически доказанные A-level исправления в изолированной локальной ветке, проверить результат и сформировать JSON/Markdown/HTML evidence и rollback. Пользователю не требуется вручную скачивать архив, указывать путь, стек или команды установки.
+
+- [Полный универсальный bootstrap-промт на русском](START_AUTOPILOT.md)
+- [Universal bootstrap prompt in English](START_AUTOPILOT_EN.md)
+- [Официальный Release v1.5.0](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.0)
+
+Закреплённый bootstrap runtime:
+
+```text
+Asset:    seo-autopilot-codex-engineering-v1.5.0.zip
+SHA-256: df7bec3c84c30b8b56c97dced52a384c1e9cbdeef424f6a474eaa746e46ed6e9
+Source:   f2b272f8a1bf917470b09378a938fee068e4cf8e
+Git tree: 7fa55a6ace25a59b2d4ede821182365a233932f2
+```
+
+## Ручная установка и прямой запуск
 
 ### Windows
 
@@ -165,6 +196,7 @@ Release gate: LOCAL VERIFICATION ONLY
 
 ## Документация
 
+- [Universal Codex bootstrap](START_AUTOPILOT.md)
 - [Local verification](docs/local-verification.md)
 - [Security policy](SECURITY.md)
 - [Safety model](docs/safety-model.md)
