@@ -16,7 +16,7 @@ body:
   - type: dropdown
     id: platform
     attributes:
-      label: Platform actually tested
+      label: Platform
       options: [Windows, macOS, Linux]
     validations:
       required: true
@@ -24,11 +24,11 @@ body:
     id: reproduce
     attributes:
       label: Minimal reproduction
-      description: Include sanitized commands, fixture structure, expected result, and actual result.
+      description: Include sanitized local commands, fixture structure, expected result, and actual result.
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
       label: Sanitized local evidence
-      description: Attach a redacted run.json and local-verification/latest.json when possible. Do not attach secrets or private source content.
+      description: Attach a redacted run.json or output from scripts/verify_local.py when possible.
