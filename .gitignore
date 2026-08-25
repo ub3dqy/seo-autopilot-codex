@@ -11,6 +11,8 @@ dist/
 user/
 engineering/
 .seo-autopilot/
+local-verification/
+artifacts/
 .env
 .env.*
 !.env.example
