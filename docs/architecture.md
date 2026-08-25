@@ -53,6 +53,10 @@ Any failure after transaction creation goes to `ROLLED_BACK` or, when rollback i
 
 The doctor detects common stacks without executing package scripts. Static HTML has a deterministic adapter. Other stacks are detected for routing and reporting but remain audit-limited until a dedicated adapter proves metadata ownership and build semantics. Unknown stacks never trigger speculative source rewriting.
 
+## Verification architecture
+
+`scripts/verify_local.py` is the canonical verification orchestrator. It invokes subprocesses as exact argv arrays without shell interpolation, writes redacted logs and JSON evidence, and supports deterministic, build, official release, and optional live-Codex modes. GitHub Actions is not part of the architecture.
+
 ## Release architecture
 
-`VERSION` is canonical. `release-manifest.json` describes edition contents and artifact templates. `prepare_editions.py` validates tracked sources, builds marked trees, refuses unsafe replacement, creates deterministic ZIPs, and writes computed checksums. Tagged releases add an SPDX SBOM and GitHub artifact provenance.
+`VERSION` is canonical. `release-manifest.json` describes edition contents and artifact templates. `prepare_editions.py` validates tracked sources, builds marked trees, refuses unsafe replacement, creates deterministic ZIPs, and writes computed checksums. The local release gate performs a second build for reproducibility, creates an SPDX SBOM, verifies assets, and records the exact environment and commit. Publication is a separate owner action and never rebuilds or mutates the verified source automatically.
