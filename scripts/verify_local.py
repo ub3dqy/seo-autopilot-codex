@@ -65,6 +65,13 @@ def git_value(*args: str) -> str | None:
     return completed.stdout.strip()
 
 
+def source_environment() -> dict[str, str]:
+    env = dict(os.environ)
+    # Test the package from this checkout, not an unrelated installed copy.
+    env["PYTHONPATH"] = str(ROOT / "src")
+    return env
+
+
 class Verification:
     def __init__(self, args: argparse.Namespace) -> None:
         self.args = args
@@ -247,6 +254,7 @@ def main() -> int:
         args.build = True
 
     verification = Verification(args)
+    source_env = source_environment()
     try:
         verification.log("SEO Autopilot local verification (GitHub Actions not required)")
         verification.log(f"Root: {ROOT}")
@@ -279,8 +287,14 @@ def main() -> int:
             [sys.executable, "-m", "compileall", "-q", "src", "scripts", "tests", "prepare_editions.py"],
         )
         verification.run(
+            "Source-layout import smoke test",
+            [sys.executable, "-c", "import seo_autopilot; print(seo_autopilot.__file__)"],
+            env=source_env,
+        )
+        verification.run(
             "Deterministic unit and lifecycle tests",
             [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
+            env=source_env,
         )
         verification.run(
             "Tracked-source and generated-tree verification",
