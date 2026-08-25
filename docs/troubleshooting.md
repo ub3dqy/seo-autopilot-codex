@@ -9,6 +9,17 @@ git status --short
 seo-autopilot doctor . --json
 ```
 
+## Local verification failed
+
+Open both evidence files:
+
+```text
+local-verification/latest.log
+local-verification/latest.json
+```
+
+The JSON identifies the exact failing argv, return code, environment and commit. Fix the cause and rerun the same local command. Do not create repeated remote runs and do not weaken the gate merely to obtain PASS.
+
 ## `digest mismatch` for a project check
 
 The argv changed after approval. Review the exact executable and every argument, calculate a new digest, and update `.seo-autopilot.json` only when the change is intentional.
@@ -39,12 +50,23 @@ The release builder refuses to overwrite an unmarked directory. Move it aside an
 
 ```bash
 python prepare_editions.py --verify-only
-python prepare_editions.py --build-zips
+python scripts/verify_local.py --build
 ```
 
 ## Generated directory has local modifications
 
 The marker hash no longer matches. Preserve the local diff before rebuilding. Generated outputs are not the canonical source; accepted changes belong in the tracked source tree.
+
+## Official release gate reports a dirty tree
+
+`--release` deliberately refuses uncommitted source changes. Commit the reviewed checkpoint and rerun:
+
+```bash
+git status --short
+python scripts/verify_local.py --release
+```
+
+`--allow-dirty-release` exists only for diagnosis and must not be used as evidence for an official release.
 
 ## Fix validation failed
 
@@ -67,7 +89,13 @@ The stack was detected, but no deterministic adapter owns its framework metadata
 
 ## Live Codex canary is `NOT_RUN`
 
-`NOT_RUN` means the CLI or authentication was unavailable. It is not a failure of deterministic tests and must not be represented as a live PASS. Configure the GitHub secret or local Codex authentication, then manually run `.github/workflows/live-eval.yml`.
+`NOT_RUN` means the CLI or authentication was unavailable. It is not a failure of deterministic tests and must not be represented as a live PASS. Configure local Codex authentication and run:
+
+```bash
+python scripts/verify_local.py --live
+```
+
+Use `--require-live` only when an actual live PASS is mandatory.
 
 ## Reports contain sensitive excerpts
 
