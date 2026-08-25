@@ -1,71 +1,85 @@
-# Local verification without GitHub Actions
+# Local verification
 
-GitHub Actions is intentionally not a dependency of this repository. Acceptance and release evidence is produced on the machine that actually executes the checks.
+## Authority
 
-## One-command gates
-
-Deterministic development gate:
+The project is released only through the reproducible local gate:
 
 ```bash
 python scripts/verify_local.py
 ```
 
-Build both editions and verify release assets:
-
-```bash
-python scripts/verify_local.py --build
-```
-
-Official release gate from a clean Git checkout:
-
-```bash
-python scripts/verify_local.py --release
-```
-
-Optional real Codex canary:
-
-```bash
-python scripts/verify_local.py --live
-```
-
-Require a live PASS rather than accepting `NOT_RUN`:
-
-```bash
-python scripts/verify_local.py --live --require-live
-```
-
-## Evidence
-
-Every invocation writes timestamped and stable aliases:
+Windows:
 
 ```text
-local-verification/verification-<UTC>.json
-local-verification/verification-<UTC>.log
-local-verification/latest.json
-local-verification/latest.log
+VERIFY_LOCAL_WINDOWS.cmd
 ```
 
-The JSON report records:
+```text
+GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
+Release gate: LOCAL VERIFICATION ONLY
+```
 
-- exact Git commit and branch when available;
-- whether the working tree was dirty;
-- operating system and Python runtime;
-- exact argv for every subprocess;
-- accepted and actual return codes;
-- duration and status of every step;
-- SHA-256 of redacted stdout and stderr;
-- release artifact names, hashes and sizes in build/release mode.
+Hosted workflow state is not evidence for this project. The final source tree must contain no active `.github/workflows/*.yml` or `.yaml` files.
 
-The log contains redacted command output. Both directories are ignored by Git to avoid accidental publication of local evidence.
+## Preconditions
 
-## Platform claims
+- clean checkout of the exact candidate commit;
+- Python 3.10 or newer;
+- Git available for transaction tests;
+- no production credentials or private fixtures in the checkout;
+- enough local disk space for two independent edition builds.
 
-A PASS proves only the environment recorded in that report. To claim support for several platforms, run the same commit separately on each platform and retain every report. Never infer Windows or macOS success from a Linux run.
+The deterministic gate must not require network access, an OpenAI API key or GitHub Actions.
 
-## Failure handling
+## Mandatory phases
 
-The harness stops official release work when the Git tree is dirty, but continues deterministic steps long enough to produce useful evidence where safe. A failed step makes the final status `FAIL`. Do not weaken the gate to turn a failure green; fix the cause and run the same command again.
+The runner performs and records:
 
-## No remote mutation
+1. environment and source commit discovery;
+2. Python compilation and import checks;
+3. complete `unittest` discovery;
+4. transaction isolation, hook suppression and rollback tests;
+5. A/B/C risk-floor and prompt-injection tests;
+6. idempotency and budget enforcement;
+7. report escaping, redaction and `run.json` schema checks;
+8. tracked-source secret scan;
+9. source/release-manifest verification;
+10. clean User Edition installation test without modifying the checkout;
+11. deterministic build A;
+12. deterministic build B;
+13. byte/hash comparison of both builds;
+14. ZIP structure, CRC, traversal, duplicate-entry and link checks;
+15. restoration of any split transport parts and SHA-256 comparison;
+16. final machine-readable and human-readable evidence output.
 
-The verification harness does not push, merge, create releases, deploy, or change repository settings. Publication remains a separate owner decision after reviewing local evidence.
+A non-zero exit code blocks the release. Partial PASS results do not compensate for a failed phase.
+
+## Evidence to preserve
+
+Record at minimum:
+
+- candidate commit and Git tree;
+- platform and Python version;
+- command line and exit code;
+- discovered/passed/skipped test count;
+- every gate status;
+- User and Engineering artifact names, byte sizes and SHA-256;
+- release manifest/build report SHA-256;
+- live Codex canary status (`PASSED`, `FAILED` or `NOT_RUN`);
+- confirmation that no active GitHub workflow files exist.
+
+Sanitize the report before publication. Do not include credentials, private paths, customer content or complete production reports.
+
+## Reproduction
+
+From a clean checkout of the recorded commit:
+
+```bash
+python scripts/verify_local.py
+```
+
+The runner must produce the same artifact SHA-256 on repeated builds. A tree/commit change invalidates the previous verification and requires a full rerun.
+
+## Release boundary
+
+The local gate validates source and local artifacts. It does not prove post-deployment indexing, rankings, traffic, rich results, Core Web Vitals, Search Console state or production configuration. Those remain separately measured external evidence.
