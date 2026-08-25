@@ -37,6 +37,8 @@
       "MANIFEST.in",
       "release-manifest.json",
       "prepare_editions.py",
+      "verify_local.sh",
+      "VERIFY_LOCAL_WINDOWS.cmd",
       "build_editions.sh",
       "BUILD_EDITIONS_WINDOWS.cmd",
       "install.sh",
