@@ -1,6 +1,6 @@
 # SEO Autopilot — User Edition
 
-User Edition предназначена для запуска без выбора внутренних промтов, validators или режимов агента.
+User Edition предназначена для запуска без выбора внутренних промтов, validators или режимов агента. Установка выполняется локально стандартной библиотекой Python: pip, сеть и build backend не требуются.
 
 ## Установка
 
@@ -14,7 +14,9 @@ User Edition предназначена для запуска без выбор�
 ./install.sh
 ```
 
-Установщик ставит CLI и Codex skill. После этого откройте репозиторий сайта в Codex и попросите:
+Установщик копирует Python-пакет в user site-packages, создаёт локальный launcher `seo-autopilot` и устанавливает Codex skill в `CODEX_HOME/skills/seo-autopilot`. Существующий неуправляемый каталог не перезаписывается без явного `--force`.
+
+После установки откройте репозиторий сайта в Codex и попросите:
 
 ```text
 Проведи SEO-аудит этого сайта. Сначала только аудит и отчёт, без изменений.
@@ -34,6 +36,19 @@ seo-autopilot fix .
 ```
 
 Результаты находятся в `.seo-autopilot/runs/<run-id>/`. Перед передачей отчёта третьим лицам проверьте содержащиеся в нём excerpts.
+
+## Проверка поставки
+
+Engineering Edition и исходный репозиторий используют единый обязательный локальный gate:
+
+```bash
+python scripts/verify_local.py
+```
+
+```text
+GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
+Release gate: LOCAL VERIFICATION ONLY
+```
 
 ## Ограничения
 
