@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from seo_autopilot.doctor import detect_stack, run_doctor
 from seo_autopilot.models import RiskLevel, RunStatus
@@ -107,6 +108,51 @@ class CoreTests(unittest.TestCase):
                 check=False,
             )
             self.assertNotEqual(branch_check.returncode, 0)
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_transaction_preserves_system_autocrlf_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            temporary = Path(name)
+            system_config = temporary / "system.gitconfig"
+            system_config.write_text("[core]\n\tautocrlf = true\n", encoding="utf-8")
+            root = temporary / f"repo-{temporary.name}"
+            root.mkdir()
+            git_env = dict(os.environ)
+            git_env["GIT_CONFIG_SYSTEM"] = str(system_config)
+            git_env.pop("GIT_CONFIG_NOSYSTEM", None)
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True, env=git_env)
+            subprocess.run(["git", "config", "user.name", "Test Owner"], cwd=root, check=True, env=git_env)
+            subprocess.run(
+                ["git", "config", "user.email", "owner@example.invalid"],
+                cwd=root,
+                check=True,
+                env=git_env,
+            )
+            (root / "index.html").write_bytes(b"before\r\n")
+            subprocess.run(["git", "add", "index.html"], cwd=root, check=True, env=git_env)
+            subprocess.run(
+                ["git", "commit", "-m", "baseline"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                env=git_env,
+            )
+            clean = subprocess.run(
+                ["git", "status", "--porcelain=v1", "--untracked-files=normal"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+                env=git_env,
+            )
+            self.assertEqual(clean.stdout, "")
+            state_path = temporary / "state.json"
+            with patch.dict(os.environ, {"GIT_CONFIG_SYSTEM": str(system_config)}, clear=False):
+                os.environ.pop("GIT_CONFIG_NOSYSTEM", None)
+                transaction = GitTransaction(root, "autocrlf-test-123", state_path)
+                worktree = transaction.start()
+                self.assertTrue(worktree.is_dir())
+                transaction.rollback()
 
     @unittest.skipUnless(shutil.which("git"), "Git is required")
     def test_doctor_blocks_dirty_fix_state(self) -> None:
