@@ -1,35 +1,14 @@
 # SEO Autopilot for OpenAI Codex
 
-Evidence-driven SEO-аудит и консервативное внедрение исправлений в код сайта: с явными уровнями риска, изолированной Git-транзакцией, локальными проверками, отчётом и rollback.
+SEO Autopilot — evidence-driven инструмент для аудита SEO и консервативного внедрения исправлений в код сайта. Он отделяет проверяемые локальные факты от предположений, использует явные уровни риска, изолированную Git-транзакцию, валидацию, отчёты и rollback.
 
-## Важное ограничение среды
-
-Этот репозиторий **не использует GitHub Actions и не зависит от него**. Все обязательные gates выполняются локально одной командой и сохраняют машиночитаемое доказательство выполнения. Красный, отсутствующий или недоступный статус Actions не является частью приёмки продукта и релиза.
-
-Каноническими доказательствами считаются:
-
-```text
-local-verification/latest.json
-local-verification/latest.log
-```
-
-В JSON фиксируются commit, ветка, состояние Git-дерева, ОС, версия Python, точные команды, коды возврата, длительность и SHA-256 вывода каждого шага.
-
-## Что изменилось в v1.5
-
-Канонические исходники, skill, policies, schemas, tests и локальные verification/release scripts находятся в обычном просматриваемом дереве Git. Кодированный source bundle больше не является источником продукта. User и Engineering Edition собираются непосредственно из текущего commit.
-
-Продукт разделяет:
-
-- **детерминированный локальный слой** — doctor, аудит, evidence, безопасные A-level исправления, Git-транзакция, проверки и отчёты;
-- **Codex skill** — естественный пользовательский интерфейс и обязательная модель поведения агента;
-- **live Codex canary** — отдельная локальная проверка фактического поведения Codex, которая честно остаётся `NOT_RUN`, пока её не запустили с доступной авторизацией.
+Версия: **1.5.0**.
 
 ## Быстрый старт
 
 ### Windows
 
-Скачайте User Edition или клонируйте репозиторий и запустите:
+Запустите:
 
 ```text
 INSTALL_WINDOWS.cmd
@@ -41,21 +20,19 @@ INSTALL_WINDOWS.cmd
 ./install.sh
 ```
 
-Установщик ставит локальный CLI и копирует skill в `CODEX_HOME/skills/seo-autopilot`.
-
 После установки откройте репозиторий сайта в Codex и напишите:
 
 ```text
 Проведи SEO-аудит этого сайта. Сначала только аудит и отчёт, без изменений.
 ```
 
-Для безопасного внедрения только механически доказанных исправлений:
+Для применения только механически доказанных исправлений:
 
 ```text
 Исправь только A-level замечания SEO Autopilot, выполни проверки и оставь изменения в отдельной локальной ветке. Ничего не отправляй и не развёртывай.
 ```
 
-## Прямой CLI
+Прямой CLI:
 
 ```bash
 seo-autopilot doctor . --json
@@ -76,28 +53,28 @@ seo-autopilot install-skill
 
 | Уровень | Поведение | Примеры |
 |---|---|---|
-| `A_AUTO_FIX` | Может применяться автоматически только после механического доказательства | отсутствующие width/height, прочитанные из заголовка локального PNG/JPEG/GIF/WebP |
-| `B_REVIEW_REQUIRED` | Evidence и предложение, но требуется просмотр владельца | title, description, lang, alt, canonical, sitemap, internal links, JSON-LD, hreflang |
+| `A_AUTO_FIX` | Автоматическое применение только после механического доказательства точного результата | отсутствующие `width`/`height`, прочитанные из заголовка локального PNG/JPEG/GIF/WebP |
+| `B_REVIEW_REQUIRED` | Evidence и рекомендация; требуется просмотр владельца | title, description, lang, alt, canonical, sitemap, internal links, JSON-LD, hreflang |
 | `C_ADVISORY_ONLY` | Только отчёт | noindex, robots, redirects, URL/routes, удаление страниц, production/deployment |
 
-Модель не может самостоятельно понизить B или C до A. Расширение A-level требует нового детерминированного адаптера и тестов.
+Модель и Codex не могут понизить B или C до A. Расширение A-level требует нового детерминированного адаптера и тестов.
 
-## Что происходит в fix mode
+## Что делает `fix`
 
-1. Проверяется Git, стек и чистота рабочего дерева.
-2. Аудит фиксирует evidence и план.
-3. Из точного `HEAD` создаётся временный worktree вне каталога владельца.
-4. Создаётся локальная ветка `seo-autopilot/<run-id>`.
-5. Применяются только A-level изменения в пределах бюджетов.
-6. Запускаются `git diff --check`, явно доверенные проектные проверки и повторный аудит.
-7. Повторная A-level правка считается ошибкой идемпотентности.
-8. При ошибке worktree и ветка удаляются; при успехе остаётся локальный commit для просмотра.
+1. Проверяет Git, стек и чистоту рабочего дерева.
+2. Фиксирует исходный commit, evidence и план.
+3. Создаёт временный worktree вне рабочего каталога владельца.
+4. Создаёт локальную ветку `seo-autopilot/<run-id>`.
+5. Применяет только A-level изменения в пределах бюджетов.
+6. Запускает `git diff --check`, явно доверенные проектные проверки и повторный аудит.
+7. Считает повторно предложенное A-level исправление ошибкой идемпотентности.
+8. При ошибке удаляет временный worktree и транзакционную ветку; при успехе оставляет локальный commit для просмотра.
 
 Команда не содержит push, merge, deploy или публикацию.
 
 ## Доверенные проектные проверки
 
-Команды не извлекаются из README, HTML, `package.json`, Makefile или ответа модели. Они запускаются только как точный argv-массив без shell и с подтверждённым SHA-256.
+Команды не извлекаются из README, HTML, `package.json`, Makefile, issue-текста или ответа модели. Они запускаются только как точный argv-массив без shell и с подтверждённым SHA-256.
 
 ```json
 {
@@ -125,109 +102,74 @@ seo-autopilot command-hash -- npm test
 
 ```text
 .seo-autopilot/runs/<run-id>/
-  run.json       канонический машиночитаемый результат
+  run.json       машиночитаемый источник истины
   report.md      отчёт для code review
-  report.html    автономный интерактивно читаемый отчёт
+  report.html    автономный HTML-отчёт
   state.json     состояние транзакции и rollback
 ```
 
 Каждое замечание содержит finding ID, policy rule, severity, risk, confidence, path/line, evidence и статус `OPEN`, `FIXED`, `SKIPPED` или `DEFERRED`.
 
-Продукт не обещает ranking, indexing, traffic, rich results, AI citations или conversion. Отсутствующие Search Console, CrUX, PageSpeed, analytics, SERP или backlink данные обозначаются как ограничения, а не заменяются оценками «из головы».
+Продукт не обещает ranking, indexing, traffic, rich results, AI citations или conversion. Отсутствующие Search Console, CrUX, PageSpeed, analytics, SERP или backlink данные обозначаются как ограничения, а не заменяются догадками.
 
-## Локальная проверка без GitHub Actions
+## Две редакции
 
-### Обычная детерминированная проверка
+Собрать User и Engineering Edition:
 
-Windows:
-
-```text
-VERIFY_LOCAL_WINDOWS.cmd
-```
-
-macOS / Linux:
-
-```bash
-./verify_local.sh
-```
-
-Прямой эквивалент:
-
-```bash
-python scripts/verify_local.py
-```
-
-Gate выполняет:
-
-- проверку Python и Git;
-- `compileall` для source/scripts/tests;
-- все unit, lifecycle, transaction, rollback, prompt-injection, budget, reporting, release и idempotency tests;
-- проверку manifest и generated-tree markers;
-- локальный tracked-source secret scan.
-
-### Сборка и проверка двух редакций
-
-Windows:
+### Windows
 
 ```text
 BUILD_EDITIONS_WINDOWS.cmd
 ```
 
-macOS / Linux:
+### macOS / Linux
 
 ```bash
 ./build_editions.sh
 ```
 
-Прямой эквивалент:
+Ручной эквивалент:
 
 ```bash
-python scripts/verify_local.py --build
+python scripts/verify_local.py
+python prepare_editions.py --build-zips
+python scripts/verify_release.py dist
 ```
 
-Дополнительно выполняются две независимые сборки с сравнением SHA-256, создание SPDX SBOM и проверка всех release assets. Сборщик не перезаписывает чужие или вручную изменённые output-каталоги.
+Сборщик читает версию из `VERSION`, проверяет `release-manifest.json`, запрещает symlink и выход из source root, защищает сгенерированные каталоги от случайной перезаписи и создаёт детерминированные ZIP с SHA-256.
 
-### Официальный локальный release gate
+## Обязательная проверка
+
+Единственный обязательный release gate:
 
 ```bash
-python scripts/verify_local.py --release
+python scripts/verify_local.py
 ```
 
-Этот режим дополнительно требует Git checkout и чистое рабочее дерево. Один запуск на одной ОС доказывает только указанную в `latest.json` среду. Для заявления о Windows/macOS/Linux проверку запускают отдельно на каждой заявляемой платформе и сохраняют каждый JSON-отчёт.
+Windows-обёртка:
 
-### Реальный Codex canary
-
-```bash
-python scripts/verify_local.py --live
+```text
+VERIFY_LOCAL_WINDOWS.cmd
 ```
 
-`NOT_RUN` допустим и не превращается в PASS. Для обязательного live-gate:
+Проверяются компиляция, unit/adversarial/transaction tests, prompt-injection boundary, rollback, идемпотентность, secret scan, структура `run.json`, установка User Edition, двойная детерминированная сборка, восстановление релизных файлов и SHA-256.
 
-```bash
-python scripts/verify_local.py --live --require-live
+### Статус hosted CI
+
+```text
+GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
+Release gate: LOCAL VERIFICATION ONLY
 ```
 
-Подробнее: [Local verification](docs/local-verification.md), [Live eval](docs/live-eval.md), [Release process](docs/release-process.md).
+В репозитории нет активных `.github/workflows/*.yml` или `.yaml`. Состояние GitHub Actions не используется как критерий готовности и не заменяет локальный verification report.
 
-## Две редакции
+## Документация
 
-`User Edition` содержит необходимый runtime, skill, policy pack, schema и установщики. `Engineering Edition` дополнительно содержит полное source tree, docs, tests и локальные verification/release tools.
-
-Сборщик:
-
-- читает единственную версию из `VERSION`;
-- проверяет `release-manifest.json`;
-- запрещает symlink и выход из source root;
-- не перезаписывает чужие или вручную изменённые output-каталоги;
-- выполняет атомарную замену;
-- создаёт детерминированные ZIP и вычисляет SHA-256.
-
-## Безопасность и документация
-
+- [Local verification](docs/local-verification.md)
 - [Security policy](SECURITY.md)
 - [Safety model](docs/safety-model.md)
 - [Architecture](docs/architecture.md)
-- [Local verification](docs/local-verification.md)
+- [Release process](docs/release-process.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Contributing](CONTRIBUTING.md)
 - [Support](SUPPORT.md)
