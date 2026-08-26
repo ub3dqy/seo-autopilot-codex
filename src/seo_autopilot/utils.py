@@ -248,8 +248,16 @@ def _pattern_matches(relative: str, pattern: str, *, is_dir: bool = False) -> bo
     return False
 
 
+def _relative_parts(relative: str) -> list[str]:
+    return [part.casefold() for part in relative.split("/") if part]
+
+
+def _named_sensitive(relative: str) -> bool:
+    return any(part in _SENSITIVE_CASEFOLD for part in _relative_parts(relative))
+
+
 def _default_ignored(relative: str) -> bool:
-    parts = [part.casefold() for part in relative.split("/") if part]
+    parts = _relative_parts(relative)
     if not parts:
         return False
     if parts[0] in _ROOT_IGNORED_CASEFOLD:
@@ -258,6 +266,8 @@ def _default_ignored(relative: str) -> bool:
 
 
 def _ignored_by_patterns(relative: str, patterns: Sequence[str], *, is_dir: bool = False) -> bool:
+    if _named_sensitive(relative):
+        return True
     ignored = _default_ignored(relative)
     for pattern in patterns:
         if _pattern_matches(relative, pattern, is_dir=is_dir):
@@ -266,12 +276,23 @@ def _ignored_by_patterns(relative: str, patterns: Sequence[str], *, is_dir: bool
 
 
 def _may_reinclude_directory(relative: str, patterns: Sequence[str]) -> bool:
+    if _named_sensitive(relative):
+        return False
     prefix = relative.rstrip("/") + "/"
     for pattern in patterns:
         if not pattern.startswith("!"):
             continue
         candidate = pattern[1:].lstrip("/")
         if candidate.startswith(prefix) or candidate == relative:
+            return True
+    return False
+
+
+def _inside_discovered_sensitive_path(relative: str, sensitive_paths: Sequence[str]) -> bool:
+    relative_key = _path_key(relative.rstrip("/"))
+    for sensitive in sensitive_paths:
+        sensitive_key = _path_key(sensitive.rstrip("/"))
+        if relative_key == sensitive_key or relative_key.startswith(sensitive_key + "/"):
             return True
     return False
 
@@ -336,7 +357,11 @@ def discover_sensitive_paths(root: Path) -> list[str]:
         kept_directories: list[str] = []
         for name in directory_names:
             candidate = current / name
+            candidate_relative = (relative / name).as_posix()
             if name.casefold() in hard_prune or _is_link_or_junction(candidate):
+                continue
+            if name.casefold() in _SENSITIVE_CASEFOLD or _looks_like_profile_directory(name):
+                found.add(candidate_relative)
                 continue
             kept_directories.append(name)
         directory_names[:] = kept_directories
@@ -356,12 +381,7 @@ def discover_sensitive_paths(root: Path) -> list[str]:
         firefox_profile = {"cookies.sqlite", "places.sqlite"}.issubset(lowered_files) or (
             "cookies.sqlite" in lowered_files and ({"logins.json", "key4.db"} & lowered_files)
         )
-        if (
-            chrome_root
-            or chrome_profile
-            or firefox_profile
-            or (_looks_like_profile_directory(current.name) and marker_count >= 1)
-        ):
+        if chrome_root or chrome_profile or firefox_profile:
             location = relative.as_posix() or "."
             found.add(location)
             directory_names[:] = []
@@ -372,6 +392,7 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
     root = root.resolve()
     ignore_path, patterns = _read_ignore_patterns(root)
     git_visible = _git_visible_paths(root)
+    sensitive_paths = discover_sensitive_paths(root)
     files: list[Path] = []
     pruned: set[str] = set()
     candidate_files_seen = 0
@@ -396,6 +417,9 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
             if _is_link_or_junction(path):
                 pruned.add(relative)
                 continue
+            if _inside_discovered_sensitive_path(relative, sensitive_paths):
+                pruned.add(relative)
+                continue
             if _ignored_by_patterns(relative, patterns, is_dir=True) and not _may_reinclude_directory(relative, patterns):
                 pruned.add(relative)
                 continue
@@ -416,6 +440,9 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
             if _is_link_or_junction(path):
                 ignored_file_count += 1
                 continue
+            if _inside_discovered_sensitive_path(relative, sensitive_paths):
+                ignored_file_count += 1
+                continue
             if _ignored_by_patterns(relative, patterns):
                 ignored_file_count += 1
                 continue
@@ -432,7 +459,7 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
         candidate_files_seen=candidate_files_seen,
         ignored_file_count=ignored_file_count,
         pruned_directories=sorted(pruned),
-        sensitive_paths=discover_sensitive_paths(root),
+        sensitive_paths=sensitive_paths,
         ignore_file=ignore_path.relative_to(root).as_posix() if ignore_path else None,
         ignore_patterns=patterns,
         gitignore_applied=git_visible is not None,
