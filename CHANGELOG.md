@@ -2,18 +2,23 @@
 
 All notable product, policy, safety and release-process changes are recorded here.
 
-## Unreleased
+## 1.5.1 — Direct-from-release version hotfix
+
+### Fixed
+
+- direct execution from an unpacked User or Engineering Edition now resolves the version from the trusted root `VERSION` file when installed package metadata is unavailable;
+- `python -S -m seo_autopilot --version` no longer returns `0+unknown` in the pinned bootstrap runtime;
+- User Edition now carries `release-manifest.json`, allowing direct temporary execution to locate the bundled policy pack and schemas.
 
 ### Added
 
-- root-level `START_AUTOPILOT.md` and `START_AUTOPILOT_EN.md` bootstrap prompts for launching from an already open website workspace;
-- one-link Codex workflow that keeps the current website folder as target, downloads the verified v1.5.0 Engineering Edition into a temporary directory, and checks its SHA-256 before execution;
-- explicit handling of audit/fix exit codes, framework-source limitations, A/B/C risk boundaries, transaction evidence and rollback in the remote bootstrap contract.
+- a regression test that reproduces the exact `PYTHONPATH=<edition>/src` bootstrap path without site-packages;
+- an explicit release note that v1.5.0 must not be used for direct-from-archive bootstrap.
 
-### Changed
+### Security
 
-- README now presents the repository URL as the primary minimal-user-action entry point;
-- manual installation remains available as a fallback rather than a prerequisite for the first SEO checkpoint.
+- the version gate remains fail-closed;
+- fallback version text is accepted only from the expected `src/seo_autopilot` layout and only when it matches the release version syntax.
 
 ## 1.5.0 — Trust, transparency and transactional autopilot
 

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import unittest
 import zipfile
 from pathlib import Path
@@ -30,6 +32,7 @@ class ReleaseTests(unittest.TestCase):
 
     def test_source_verification_and_deterministic_archives(self) -> None:
         command = [sys.executable, "prepare_editions.py"]
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         try:
             subprocess.run([*command, "--verify-only"], cwd=ROOT, check=True, capture_output=True, text=True)
             subprocess.run([*command, "--build-zips", "--force"], cwd=ROOT, check=True, capture_output=True, text=True)
@@ -46,6 +49,27 @@ class ReleaseTests(unittest.TestCase):
                     names = handle.namelist()
                     self.assertTrue(any(name.endswith("/README.md") for name in names))
                     self.assertFalse(any("source-bundle" in name for name in names))
+                    if "-user-" in filename:
+                        self.assertTrue(any(name.endswith("/release-manifest.json") for name in names))
+                    with tempfile.TemporaryDirectory() as name:
+                        handle.extractall(name)
+                        extracted = Path(name) / filename.removesuffix(".zip")
+                        env = dict(os.environ)
+                        env["PYTHONPATH"] = str(extracted / "src")
+                        env["PYTHONNOUSERSITE"] = "1"
+                        completed = subprocess.run(
+                            [sys.executable, "-S", "-m", "seo_autopilot", "--version"],
+                            cwd=extracted,
+                            env=env,
+                            capture_output=True,
+                            text=True,
+                            encoding="utf-8",
+                            errors="replace",
+                            check=False,
+                        )
+                        self.assertEqual(completed.returncode, 0, completed.stderr)
+                        self.assertEqual(completed.stdout.strip(), f"seo-autopilot {version}")
+                        self.assertNotIn("0+unknown", completed.stdout)
         finally:
             subprocess.run([*command, "--clean", "--force"], cwd=ROOT, check=False, capture_output=True, text=True)
 

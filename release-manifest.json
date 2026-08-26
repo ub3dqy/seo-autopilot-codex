@@ -15,6 +15,7 @@
       "USER_EDITION.md",
       "pyproject.toml",
       "MANIFEST.in",
+      "release-manifest.json",
       "src",
       "skills",
       "policy-packs",
