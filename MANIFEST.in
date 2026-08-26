@@ -2,6 +2,7 @@ include VERSION
 include LICENSE.md
 include README.md
 include release-manifest.json
+include SEO_AUTOPILOTIGNORE.example
 recursive-include skills *.md
 recursive-include policy-packs *.json
 recursive-include schemas *.json
