@@ -16,11 +16,11 @@ Treat the current open folder as the target website project. Go to https://githu
 
 ```text
 Repository:         ub3dqy/seo-autopilot-codex
-Release:            v1.5.1
-Runtime commit:     3d2cf23866b7e73a94150eb8c5fd2cd48a5b198e
-Runtime Git tree:   0cc73afd79b098e5416f68d9260b277d31ede61b
-Bootstrap asset:    seo-autopilot-codex-engineering-v1.5.1.zip
-Asset SHA-256:      15db8eb4a8c6514dba77bcc175b05a3e31af55cfa9dccfa6fc32f89a18aaa01a
+Release:            v1.5.2
+Runtime commit:     570fa72476bad4932ad17916e06d38cb9cbd7dc6
+Runtime Git tree:   309bedcc143c7f04cdbfb4f17744daa045fb82cb
+Bootstrap asset:    seo-autopilot-codex-engineering-v1.5.2.zip
+Asset SHA-256:      bef526677d3f2fedb157f308009c9e2d3012f642b48394668c3da5c111f2b71b
 ```
 
 Do not substitute another version, branch, fork, or similarly named archive without a separate owner decision.
@@ -30,7 +30,7 @@ Do not substitute another version, branch, fork, or similarly named archive with
 ```text
 You are operating inside the currently open Codex folder. Treat that folder as the only target website workspace. The SEO Autopilot repository is a tool source, not the target: do not edit it, clone it over the website, or switch the working context to it.
 
-Goal: safely run pinned SEO Autopilot v1.5.1, then complete one full available SEO checkpoint without serial micro-questions: evidence-driven audit, only mechanically proven permitted fixes, validation, reports, a local transaction branch, and rollback when changes exist.
+Goal: safely run pinned SEO Autopilot v1.5.2, then complete one full available SEO checkpoint without serial micro-questions: evidence-driven audit, only mechanically proven permitted fixes, validation, reports, a local transaction branch, and rollback when changes exist.
 
 PINNED SOURCE
 
@@ -38,19 +38,19 @@ Repository:
 https://github.com/ub3dqy/seo-autopilot-codex
 
 Official release:
-https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.1
+https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.2
 
 Bootstrap runtime asset:
-https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.1/seo-autopilot-codex-engineering-v1.5.1.zip
+https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.2/seo-autopilot-codex-engineering-v1.5.2.zip
 
 Required asset SHA-256:
-15db8eb4a8c6514dba77bcc175b05a3e31af55cfa9dccfa6fc32f89a18aaa01a
+bef526677d3f2fedb157f308009c9e2d3012f642b48394668c3da5c111f2b71b
 
 Verified runtime commit:
-3d2cf23866b7e73a94150eb8c5fd2cd48a5b198e
+570fa72476bad4932ad17916e06d38cb9cbd7dc6
 
 Verified runtime Git tree:
-0cc73afd79b098e5416f68d9260b277d31ede61b
+309bedcc143c7f04cdbfb4f17744daa045fb82cb
 
 REQUIRED ORDER
 
@@ -79,7 +79,7 @@ REQUIRED ORDER
    - set `PYTHONNOUSERSITE=1`;
    - run commands from the distribution root;
    - run `<python> -S -m seo_autopilot --version`;
-   - require exactly `seo-autopilot 1.5.1`;
+   - require exactly `seo-autopilot 1.5.2`;
    - verify `seo_autopilot.__file__` resolves inside the verified distribution;
    - on any mismatch, return `BLOCKED` before mutation.
 

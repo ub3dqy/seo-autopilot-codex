@@ -2,7 +2,7 @@
 
 SEO Autopilot — evidence-driven инструмент для технического SEO-аудита и консервативного внедрения только механически доказанных исправлений в код сайта. Он использует source-first scope, hard privacy exclusions, явные уровни риска, изолированную Git-транзакцию, локальные проверки, JSON/Markdown/HTML-отчёты и rollback.
 
-Исходная версия: **v1.5.2**. До публикации нового release однострочный bootstrap остаётся закреплён на проверенном runtime **v1.5.1**.
+Актуальная опубликованная версия и закреплённый one-link runtime: **v1.5.2**.
 
 ## Запустить из папки сайта одной фразой
 
@@ -22,17 +22,17 @@ SEO Autopilot — evidence-driven инструмент для техническ
 
 - [Bootstrap-промт на русском](START_AUTOPILOT.md)
 - [Bootstrap prompt in English](START_AUTOPILOT_EN.md)
-- [Актуальный опубликованный Release v1.5.1](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.1)
+- [Актуальный опубликованный Release v1.5.2](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.2)
 
 ### Текущая закреплённая поставка до публикации v1.5.2
 
 ```text
-Release:          v1.5.1
-Runtime commit:   3d2cf23866b7e73a94150eb8c5fd2cd48a5b198e
-Runtime Git tree: 0cc73afd79b098e5416f68d9260b277d31ede61b
-Asset:            seo-autopilot-codex-engineering-v1.5.1.zip
-Asset URL:        https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.1/seo-autopilot-codex-engineering-v1.5.1.zip
-SHA-256:          15db8eb4a8c6514dba77bcc175b05a3e31af55cfa9dccfa6fc32f89a18aaa01a
+Release:          v1.5.2
+Runtime commit:   570fa72476bad4932ad17916e06d38cb9cbd7dc6
+Runtime Git tree: 309bedcc143c7f04cdbfb4f17744daa045fb82cb
+Asset:            seo-autopilot-codex-engineering-v1.5.2.zip
+Asset URL:        https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.2/seo-autopilot-codex-engineering-v1.5.2.zip
+SHA-256:          bef526677d3f2fedb157f308009c9e2d3012f642b48394668c3da5c111f2b71b
 ```
 
 Этот блок намеренно совпадает с `START_AUTOPILOT.md`. После публикации и обратной SHA-256-проверки v1.5.2 отдельный проверенный bootstrap-commit заменит все значения одновременно.
