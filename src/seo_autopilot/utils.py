@@ -86,6 +86,7 @@ MAX_SENSITIVE_SCAN_DIRECTORIES = 20_000
 
 @dataclass
 class FileSelection:
+    root: Path
     files: list[Path]
     candidate_files_seen: int
     ignored_file_count: int
@@ -94,6 +95,7 @@ class FileSelection:
     ignore_file: str | None = None
     ignore_patterns: list[str] = field(default_factory=list)
     gitignore_applied: bool = False
+    _git_visible: set[str] | None = field(default=None, repr=False)
 
     def summary(self) -> dict[str, object]:
         return {
@@ -107,6 +109,25 @@ class FileSelection:
             "ignore_patterns": self.ignore_patterns,
             "gitignore_applied": self.gitignore_applied,
         }
+
+    def allows_file(self, path: Path) -> bool:
+        try:
+            if _is_link_or_junction(path):
+                return False
+            resolved = path.resolve(strict=True)
+            relative_path = resolved.relative_to(self.root)
+        except (OSError, ValueError):
+            return False
+        if not resolved.is_file():
+            return False
+        relative = _normalize_relative(relative_path)
+        if _inside_discovered_sensitive_path(relative, self.sensitive_paths):
+            return False
+        if _ignored_by_patterns(relative, self.ignore_patterns):
+            return False
+        if self._git_visible is not None and _path_key(relative) not in self._git_visible:
+            return False
+        return True
 
 
 def utc_now() -> str:
@@ -393,10 +414,19 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
     ignore_path, patterns = _read_ignore_patterns(root)
     git_visible = _git_visible_paths(root)
     sensitive_paths = discover_sensitive_paths(root)
-    files: list[Path] = []
+    selection = FileSelection(
+        root=root,
+        files=[],
+        candidate_files_seen=0,
+        ignored_file_count=0,
+        pruned_directories=[],
+        sensitive_paths=sensitive_paths,
+        ignore_file=ignore_path.relative_to(root).as_posix() if ignore_path else None,
+        ignore_patterns=patterns,
+        gitignore_applied=git_visible is not None,
+        _git_visible=git_visible,
+    )
     pruned: set[str] = set()
-    candidate_files_seen = 0
-    ignored_file_count = 0
     normalized_suffixes = tuple(value.casefold() for value in suffixes)
 
     for current_name, directory_names, file_names in os.walk(root, topdown=True, followlinks=False):
@@ -430,40 +460,15 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
             path = current / name
             if path.suffix.casefold() not in normalized_suffixes:
                 continue
-            candidate_files_seen += 1
-            try:
-                relative_path = path.relative_to(root)
-            except ValueError:
-                ignored_file_count += 1
-                continue
-            relative = _normalize_relative(relative_path)
-            if _is_link_or_junction(path):
-                ignored_file_count += 1
-                continue
-            if _inside_discovered_sensitive_path(relative, sensitive_paths):
-                ignored_file_count += 1
-                continue
-            if _ignored_by_patterns(relative, patterns):
-                ignored_file_count += 1
-                continue
-            if git_visible is not None and _path_key(relative) not in git_visible:
-                ignored_file_count += 1
-                continue
-            if not path.is_file():
-                ignored_file_count += 1
-                continue
-            files.append(path)
+            selection.candidate_files_seen += 1
+            if selection.allows_file(path):
+                selection.files.append(path)
+            else:
+                selection.ignored_file_count += 1
 
-    return FileSelection(
-        files=sorted(files),
-        candidate_files_seen=candidate_files_seen,
-        ignored_file_count=ignored_file_count,
-        pruned_directories=sorted(pruned),
-        sensitive_paths=sensitive_paths,
-        ignore_file=ignore_path.relative_to(root).as_posix() if ignore_path else None,
-        ignore_patterns=patterns,
-        gitignore_applied=git_visible is not None,
-    )
+    selection.files.sort()
+    selection.pruned_directories = sorted(pruned)
+    return selection
 
 
 def iter_files(root: Path, suffixes: tuple[str, ...]) -> Iterable[Path]:
