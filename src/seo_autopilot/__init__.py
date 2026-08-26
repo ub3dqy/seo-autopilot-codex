@@ -23,12 +23,15 @@ def _source_tree_version() -> str | None:
 
 _source_version = _source_tree_version()
 if _source_version is not None:
-    # A verified unpacked release must identify itself, even if another version is installed globally.
     __version__ = _source_version
 else:
     try:
         __version__ = version("seo-autopilot-codex")
     except PackageNotFoundError:
         __version__ = "0+unknown"
+
+from .runtime_hardening import activate as _activate_runtime_hardening
+
+_activate_runtime_hardening()
 
 __all__ = ["__version__"]
