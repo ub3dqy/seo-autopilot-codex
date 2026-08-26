@@ -2,6 +2,29 @@
 
 All notable product, policy, safety and release-process changes are recorded here.
 
+## 1.5.2 — Audit Scope & Privacy Hardening
+
+### Added
+
+- source-first audit scope based on tracked files plus untracked files only inside known source roots;
+- structured `audit_scope` evidence with generated, non-production, and sensitive exclusions;
+- hard browser-profile detection that excludes Chrome/Chromium/Edge/Firefox/Playwright profile trees before content reads;
+- deterministic Next.js source findings for deferred hash navigation, mobile-menu accessibility, sitemap `lastModified`, WebSite identity, and dynamic metadata ownership;
+- AIRSYS-shaped regression coverage with noisy `artifacts/**`, `tmp/**`, and browser profile markers.
+
+### Changed
+
+- A-level fixes are emitted only for `CURRENT_SOURCE` files admitted by the source-first scope;
+- generated output, archives, snapshots, reports, fixtures, examples, and temporary trees are excluded by default;
+- v1.5.2 reports extend schema version 1 with `audit_scope` and evidence classes while preserving compatibility;
+- `REVIEW_REQUIRED` is presented as a review state, not a technical failure.
+
+### Security
+
+- privacy exclusions are immutable and cannot be overridden by project scope configuration;
+- browser profile file contents are never opened, excerpted, or hashed by the audit engine;
+- custom scope includes cannot re-enable generated or sensitive trees.
+
 ## 1.5.1 — Direct-from-release version hotfix
 
 ### Fixed
