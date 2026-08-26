@@ -194,6 +194,10 @@ def _normalize_relative(path: Path | str) -> str:
     return value.lstrip("/")
 
 
+def _path_key(relative: str) -> str:
+    return os.path.normcase(relative).replace("\\", "/")
+
+
 def _read_ignore_patterns(root: Path) -> tuple[Path | None, list[str]]:
     path = root / ".seo-autopilotignore"
     if not path.is_file() or _is_link_or_junction(path):
@@ -286,7 +290,7 @@ def _git_visible_paths(root: Path) -> set[str] | None:
     if completed.returncode != 0:
         return None
     return {
-        _normalize_relative(value).casefold()
+        _path_key(_normalize_relative(value))
         for value in completed.stdout.split("\x00")
         if value
     }
@@ -415,7 +419,7 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
             if _ignored_by_patterns(relative, patterns):
                 ignored_file_count += 1
                 continue
-            if git_visible is not None and relative.casefold() not in git_visible:
+            if git_visible is not None and _path_key(relative) not in git_visible:
                 ignored_file_count += 1
                 continue
             if not path.is_file():
