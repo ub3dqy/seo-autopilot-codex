@@ -19,15 +19,48 @@ User Edition предназначена для запуска без выбор�
 После установки откройте репозиторий сайта в Codex и попросите:
 
 ```text
-Проведи SEO-аудит этого сайта. Сначала только аудит и отчёт, без изменений.
+Проведи SEO-аудит этого сайта. Сначала покажи фактическую область аудита, исключи архивы и временные файлы, затем создай отчёт без изменений исходников.
 ```
+
+## Scope preflight
+
+Перед аудитом выполните read-only проверку области:
+
+```bash
+seo-autopilot scope . --json
+```
+
+Она показывает:
+
+- какие статические HTML-файлы попадут в аудит;
+- какие каталоги исключены;
+- применены ли правила `.gitignore`;
+- используется ли `.seo-autopilotignore`;
+- обнаружены ли browser-profile или credential-bearing пути.
+
+По умолчанию исключены `artifacts/`, `tmp/`, `temp/`, Playwright/test reports, caches, dependencies и build output. Cookies, History, Login Data и другие данные browser profile не читаются.
+
+Для локальных правил создайте `.seo-autopilotignore` в корне сайта:
+
+```gitignore
+legacy-export/**
+reports/**
+!artifacts/current-production-snapshot/**
+```
+
+Подробности: `docs/audit-scope.md` в Engineering Edition или исходном репозитории.
+
+## Аудит и исправления
 
 Для детерминированной проверки без Codex:
 
 ```bash
+seo-autopilot scope . --json
 seo-autopilot doctor . --json
 seo-autopilot audit .
 ```
+
+Dirty working tree не блокирует read-only `scope` и `audit`, но блокирует `fix`. Инструмент не выполняет `reset`, `clean` или `stash` для обхода этого барьера.
 
 `fix` применяет только механически доказанные A-level изменения в отдельной локальной Git-ветке. Он не отправляет, не объединяет и не развёртывает код.
 
@@ -42,7 +75,7 @@ seo-autopilot fix .
 Engineering Edition и исходный репозиторий используют единый обязательный локальный gate:
 
 ```bash
-python scripts/verify_local.py
+python scripts/verify_local.py --release
 ```
 
 ```text
@@ -52,4 +85,4 @@ Release gate: LOCAL VERIFICATION ONLY
 
 ## Ограничения
 
-Canonical, noindex, robots, redirects, routes, schema, content, URL, удаление страниц и deployment не исправляются автоматически. Рейтинг, индексация, трафик и rich results не гарантируются.
+Canonical, noindex, robots, redirects, routes, schema, content, URL, удаление страниц и deployment не исправляются автоматически. Рейтинг, индексация, трафик, конверсии, выручка и rich results не гарантируются. Framework source, rendered-browser, Search Console, Яндекс Вебмастер, CrUX, PageSpeed, analytics, SERP и backlink evidence отмечаются как ограничения, если фактически не предоставлены или не измерены.
