@@ -87,6 +87,40 @@ class EngineTests(unittest.TestCase):
                 apply_safe_fixes(root, result.safe_fixes, max_changed_files=0)
             self.assertEqual((root / "index.html").read_text(encoding="utf-8"), before)
 
+    def test_audit_excludes_archived_and_temporary_html_from_findings_and_fixes(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            public = root / "public"
+            public.mkdir()
+            (public / "index.html").write_text(
+                "<!doctype html>\n"
+                "<html lang=\"ru\"><head>\n"
+                "<title>Current production page</title>\n"
+                "<meta name=\"description\" content=\"Current page description\">\n"
+                "<link rel=\"canonical\" href=\"https://example.invalid/\">\n"
+                "</head><body><h1>Current</h1></body></html>\n",
+                encoding="utf-8",
+            )
+            (public / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")
+            (public / "sitemap.xml").write_text("<urlset/>\n", encoding="utf-8")
+
+            archived = root / "artifacts" / "old-snapshot"
+            archived.mkdir(parents=True)
+            (archived / "image.png").write_bytes(png_header(640, 360))
+            (archived / "index.html").write_text(
+                "<html><head></head><body><img src=\"image.png\"></body></html>\n",
+                encoding="utf-8",
+            )
+            temporary = root / "tmp"
+            temporary.mkdir()
+            (temporary / "old.html").write_text("<html><body>Old</body></html>\n", encoding="utf-8")
+
+            result = audit_repository(root, POLICY)
+            self.assertEqual(result.pages_scanned, 1)
+            self.assertEqual(result.safe_fixes, [])
+            self.assertFalse(any(item.path.startswith(("artifacts/", "tmp/")) for item in result.findings))
+            self.assertEqual(result.findings, [])
+
 
 if __name__ == "__main__":
     unittest.main()
