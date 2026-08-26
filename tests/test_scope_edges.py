@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from seo_autopilot.utils import select_files
 
@@ -37,12 +37,23 @@ class AuditScopeEdgeTests(unittest.TestCase):
             self.assertEqual(selected, ["outside/old.html"])
             self.assertIn("linked-copy", selection.pruned_directories)
 
-    @unittest.skipUnless(os.name == "nt" and hasattr(Path("."), "is_junction"), "Windows junction test")
-    def test_windows_junction_is_not_traversed(self) -> None:
-        # Creation of junctions may require a platform command and permissions.
-        # The implementation uses Path.is_junction when available; this test is
-        # intentionally skipped unless the environment can provide the primitive.
-        self.assertTrue(hasattr(Path("."), "is_junction"))
+    def test_junction_primitive_is_treated_as_non_traversable(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            junction = root / "junction-copy"
+            junction.mkdir()
+            (junction / "old.html").write_text("<html></html>\n", encoding="utf-8")
+
+            with patch.object(
+                Path,
+                "is_junction",
+                new=lambda self: self.name == "junction-copy",
+                create=True,
+            ):
+                selection = select_files(root, (".html",))
+
+            self.assertEqual(selection.files, [])
+            self.assertIn("junction-copy", selection.pruned_directories)
 
 
 if __name__ == "__main__":
