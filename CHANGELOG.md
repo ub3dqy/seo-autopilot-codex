@@ -2,6 +2,28 @@
 
 All notable product, policy, safety and release-process changes are recorded here.
 
+## 1.5.2 — Audit scope and privacy hotfix
+
+### Fixed
+
+- generated snapshots and temporary trees such as `artifacts/`, `tmp/`, Playwright reports and caches are excluded from the default HTML audit scope;
+- Git-ignored files no longer become SEO findings unless they are already tracked;
+- browser-profile and credential-bearing directory names are excluded before page parsing;
+- audits no longer propose A-level fixes for archived HTML copies outside the current website source.
+
+### Added
+
+- automatic `.seo-autopilotignore` support with ordered glob rules and `!` re-inclusion;
+- `python -m seo_autopilot.scope <workspace> --json` read-only scope preflight;
+- scope evidence for selected HTML, pruned directories, Git-ignore use and browser-profile-like paths;
+- regression coverage reproducing the AIRSYS `artifacts/**`, `tmp/**` and Chrome-profile noise scenario.
+
+### Privacy
+
+- browser profile detection uses path and directory-entry names only;
+- Cookies, History, Login Data and other profile file contents are not opened by the scope preflight or HTML scanner;
+- sensitive paths produce `REVIEW_REQUIRED` in scope evidence and remain excluded from SEO findings.
+
 ## 1.5.1 — Direct-from-release version hotfix
 
 ### Fixed

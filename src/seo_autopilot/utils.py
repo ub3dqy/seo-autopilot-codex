@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import os
+import shutil
 import subprocess
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Iterable
+from pathlib import Path, PurePosixPath
+from typing import Iterable, Sequence
 
 
 IGNORED_DIRECTORIES = {
@@ -22,7 +25,109 @@ IGNORED_DIRECTORIES = {
     ".next",
     ".nuxt",
     ".output",
+    ".tmp",
+    ".cache",
+    ".turbo",
 }
+
+ROOT_IGNORED_DIRECTORIES = {
+    "artifacts",
+    "tmp",
+    "temp",
+    "playwright-report",
+    "test-results",
+    "blob-report",
+}
+
+SENSITIVE_DIRECTORY_NAMES = {
+    ".aws",
+    ".azure",
+    ".gnupg",
+    ".ssh",
+    "browser-profile",
+    "browser-profiles",
+    "chrome-profile",
+    "chrome-profiles",
+    "chrome-user-data",
+    "chromium-profile",
+    "chromium-profiles",
+    "firefox-profile",
+    "firefox-profiles",
+    "playwright-profile",
+    "playwright-profiles",
+    "user data",
+}
+
+BROWSER_PROFILE_FILES = {
+    "cookies",
+    "cookies-journal",
+    "history",
+    "history-journal",
+    "login data",
+    "login data-journal",
+    "local state",
+    "web data",
+    "web data-journal",
+    "cookies.sqlite",
+    "key4.db",
+    "logins.json",
+    "places.sqlite",
+}
+
+_IGNORED_CASEFOLD = frozenset(value.casefold() for value in IGNORED_DIRECTORIES)
+_ROOT_IGNORED_CASEFOLD = frozenset(value.casefold() for value in ROOT_IGNORED_DIRECTORIES)
+_SENSITIVE_CASEFOLD = frozenset(value.casefold() for value in SENSITIVE_DIRECTORY_NAMES)
+
+MAX_IGNORE_FILE_BYTES = 64 * 1024
+MAX_IGNORE_PATTERNS = 512
+MAX_SCOPE_PATHS = 100
+MAX_SENSITIVE_SCAN_DIRECTORIES = 20_000
+
+
+@dataclass
+class FileSelection:
+    root: Path
+    files: list[Path]
+    candidate_files_seen: int
+    ignored_file_count: int
+    pruned_directories: list[str] = field(default_factory=list)
+    sensitive_paths: list[str] = field(default_factory=list)
+    ignore_file: str | None = None
+    ignore_patterns: list[str] = field(default_factory=list)
+    gitignore_applied: bool = False
+    _git_visible: set[str] | None = field(default=None, repr=False)
+
+    def summary(self) -> dict[str, object]:
+        return {
+            "candidate_files_seen": self.candidate_files_seen,
+            "selected_files": len(self.files),
+            "ignored_file_count": self.ignored_file_count,
+            "pruned_directory_count": len(self.pruned_directories),
+            "pruned_directories": self.pruned_directories[:MAX_SCOPE_PATHS],
+            "sensitive_paths": self.sensitive_paths[:MAX_SCOPE_PATHS],
+            "ignore_file": self.ignore_file,
+            "ignore_patterns": self.ignore_patterns,
+            "gitignore_applied": self.gitignore_applied,
+        }
+
+    def allows_file(self, path: Path) -> bool:
+        try:
+            if _is_link_or_junction(path):
+                return False
+            resolved = path.resolve(strict=True)
+            relative_path = resolved.relative_to(self.root)
+        except (OSError, ValueError):
+            return False
+        if not resolved.is_file():
+            return False
+        relative = _normalize_relative(relative_path)
+        if _inside_discovered_sensitive_path(relative, self.sensitive_paths):
+            return False
+        if _ignored_by_patterns(relative, self.ignore_patterns):
+            return False
+        if self._git_visible is not None and _path_key(relative) not in self._git_visible:
+            return False
+        return True
 
 
 def utc_now() -> str:
@@ -55,9 +160,6 @@ def safe_environment() -> dict[str, str]:
         "PERL5OPT",
     }
     env = {key: value for key, value in os.environ.items() if key not in blocked}
-    # Preserve Git's effective system configuration. Git for Windows commonly
-    # stores core.autocrlf there; disabling it after checkout can make a clean
-    # CRLF worktree appear dirty. Hooks are disabled explicitly by Git callers.
     env.update(
         {
             "GIT_TERMINAL_PROMPT": "0",
@@ -93,14 +195,281 @@ def run_process(
     )
 
 
-def iter_files(root: Path, suffixes: tuple[str, ...]) -> Iterable[Path]:
-    for path in root.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in suffixes:
+def _is_link_or_junction(path: Path) -> bool:
+    try:
+        if path.is_symlink():
+            return True
+        junction_check = getattr(path, "is_junction", None)
+        return bool(junction_check and junction_check())
+    except OSError:
+        return True
+
+
+def _normalize_relative(path: Path | str) -> str:
+    if isinstance(path, Path):
+        value = path.as_posix()
+    else:
+        value = str(path).replace("\\", "/")
+    while value.startswith("./"):
+        value = value[2:]
+    return value.lstrip("/")
+
+
+def _path_key(relative: str) -> str:
+    return os.path.normcase(relative).replace("\\", "/")
+
+
+def _read_ignore_patterns(root: Path) -> tuple[Path | None, list[str]]:
+    path = root / ".seo-autopilotignore"
+    if not path.is_file() or _is_link_or_junction(path):
+        return None, []
+    try:
+        if path.stat().st_size > MAX_IGNORE_FILE_BYTES:
+            return path, []
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return path, []
+    patterns: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
             continue
+        if "\x00" in line or len(line) > 512:
+            continue
+        patterns.append(line.replace("\\", "/"))
+        if len(patterns) >= MAX_IGNORE_PATTERNS:
+            break
+    return path, patterns
+
+
+def _pattern_matches(relative: str, pattern: str, *, is_dir: bool = False) -> bool:
+    if pattern.startswith("!"):
+        pattern = pattern[1:]
+    pattern = pattern.strip()
+    if not pattern:
+        return False
+    anchored = pattern.startswith("/")
+    pattern = pattern.lstrip("/")
+    directory_pattern = pattern.endswith("/")
+    pattern = pattern.rstrip("/")
+    if not pattern:
+        return False
+    candidates = [relative]
+    if not anchored:
+        parts = relative.split("/")
+        candidates.extend("/".join(parts[index:]) for index in range(1, len(parts)))
+    for candidate in candidates:
+        if directory_pattern:
+            if candidate == pattern or candidate.startswith(pattern + "/"):
+                return True
+            if fnmatch.fnmatchcase(candidate, pattern + "/**"):
+                return True
+        elif fnmatch.fnmatchcase(candidate, pattern) or PurePosixPath(candidate).match(pattern):
+            return True
+    return False
+
+
+def _relative_parts(relative: str) -> list[str]:
+    return [part.casefold() for part in relative.split("/") if part]
+
+
+def _named_sensitive(relative: str) -> bool:
+    return any(part in _SENSITIVE_CASEFOLD for part in _relative_parts(relative))
+
+
+def _default_ignored(relative: str) -> bool:
+    parts = _relative_parts(relative)
+    if not parts:
+        return False
+    if parts[0] in _ROOT_IGNORED_CASEFOLD:
+        return True
+    return any(part in _IGNORED_CASEFOLD or part in _SENSITIVE_CASEFOLD for part in parts)
+
+
+def _ignored_by_patterns(relative: str, patterns: Sequence[str], *, is_dir: bool = False) -> bool:
+    if _named_sensitive(relative):
+        return True
+    ignored = _default_ignored(relative)
+    for pattern in patterns:
+        if _pattern_matches(relative, pattern, is_dir=is_dir):
+            ignored = not pattern.startswith("!")
+    return ignored
+
+
+def _may_reinclude_directory(relative: str, patterns: Sequence[str]) -> bool:
+    if _named_sensitive(relative):
+        return False
+    prefix = relative.rstrip("/") + "/"
+    for pattern in patterns:
+        if not pattern.startswith("!"):
+            continue
+        candidate = pattern[1:].lstrip("/")
+        if candidate.startswith(prefix) or candidate == relative:
+            return True
+    return False
+
+
+def _inside_discovered_sensitive_path(relative: str, sensitive_paths: Sequence[str]) -> bool:
+    relative_key = _path_key(relative.rstrip("/"))
+    for sensitive in sensitive_paths:
+        sensitive_key = _path_key(sensitive.rstrip("/"))
+        if relative_key == sensitive_key or relative_key.startswith(sensitive_key + "/"):
+            return True
+    return False
+
+
+def _git_visible_paths(root: Path) -> set[str] | None:
+    if shutil.which("git") is None or not (root / ".git").exists():
+        return None
+    try:
+        completed = run_process(
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            cwd=root,
+            timeout=120,
+        )
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+    if completed.returncode != 0:
+        return None
+    return {
+        _path_key(_normalize_relative(value))
+        for value in completed.stdout.split("\x00")
+        if value
+    }
+
+
+def _looks_like_profile_directory(name: str) -> bool:
+    lowered = name.casefold()
+    return (
+        lowered in _SENSITIVE_CASEFOLD
+        or (
+            "profile" in lowered
+            and any(token in lowered for token in ("chrome", "chromium", "browser", "firefox", "playwright"))
+        )
+        or (
+            "user" in lowered
+            and "data" in lowered
+            and any(token in lowered for token in ("chrome", "chromium", "browser"))
+        )
+    )
+
+
+def discover_sensitive_paths(root: Path) -> list[str]:
+    root = root.resolve()
+    found: set[str] = set()
+    visited = 0
+    hard_prune = {".git", ".hg", ".svn", ".venv", "venv", "node_modules", ".next", ".nuxt", ".output"}
+    for current_name, directory_names, file_names in os.walk(root, topdown=True, followlinks=False):
+        visited += 1
+        if visited > MAX_SENSITIVE_SCAN_DIRECTORIES:
+            break
+        current = Path(current_name)
         try:
-            relative = path.relative_to(root)
+            relative = current.relative_to(root)
         except ValueError:
+            directory_names[:] = []
             continue
-        if any(part in IGNORED_DIRECTORIES for part in relative.parts):
+        if current != root and _is_link_or_junction(current):
+            directory_names[:] = []
             continue
-        yield path
+        if any(part.casefold() in hard_prune for part in relative.parts):
+            directory_names[:] = []
+            continue
+        kept_directories: list[str] = []
+        for name in directory_names:
+            candidate = current / name
+            candidate_relative = (relative / name).as_posix()
+            if name.casefold() in hard_prune or _is_link_or_junction(candidate):
+                continue
+            if name.casefold() in _SENSITIVE_CASEFOLD or _looks_like_profile_directory(name):
+                found.add(candidate_relative)
+                continue
+            kept_directories.append(name)
+        directory_names[:] = kept_directories
+
+        lowered_files = {name.casefold() for name in file_names}
+        lowered_dirs = {name.casefold() for name in directory_names}
+        current_lower = current.name.casefold()
+        marker_count = len(lowered_files.intersection(BROWSER_PROFILE_FILES))
+        chrome_root = "local state" in lowered_files and any(
+            name == "default" or name.startswith("profile ") for name in lowered_dirs
+        )
+        chrome_profile = (
+            current_lower == "default"
+            or current_lower.startswith("profile ")
+            or _looks_like_profile_directory(current.name)
+        ) and marker_count >= 2
+        firefox_profile = {"cookies.sqlite", "places.sqlite"}.issubset(lowered_files) or (
+            "cookies.sqlite" in lowered_files and ({"logins.json", "key4.db"} & lowered_files)
+        )
+        if chrome_root or chrome_profile or firefox_profile:
+            location = relative.as_posix() or "."
+            found.add(location)
+            directory_names[:] = []
+    return sorted(found)
+
+
+def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
+    root = root.resolve()
+    ignore_path, patterns = _read_ignore_patterns(root)
+    git_visible = _git_visible_paths(root)
+    sensitive_paths = discover_sensitive_paths(root)
+    selection = FileSelection(
+        root=root,
+        files=[],
+        candidate_files_seen=0,
+        ignored_file_count=0,
+        pruned_directories=[],
+        sensitive_paths=sensitive_paths,
+        ignore_file=ignore_path.relative_to(root).as_posix() if ignore_path else None,
+        ignore_patterns=patterns,
+        gitignore_applied=git_visible is not None,
+        _git_visible=git_visible,
+    )
+    pruned: set[str] = set()
+    normalized_suffixes = tuple(value.casefold() for value in suffixes)
+
+    for current_name, directory_names, file_names in os.walk(root, topdown=True, followlinks=False):
+        current = Path(current_name)
+        try:
+            current_relative = current.relative_to(root)
+        except ValueError:
+            directory_names[:] = []
+            continue
+        if current != root and _is_link_or_junction(current):
+            directory_names[:] = []
+            continue
+        kept_directories: list[str] = []
+        for name in directory_names:
+            candidate = current_relative / name
+            relative = _normalize_relative(candidate)
+            path = current / name
+            if _is_link_or_junction(path):
+                pruned.add(relative)
+                continue
+            if _inside_discovered_sensitive_path(relative, sensitive_paths):
+                pruned.add(relative)
+                continue
+            if _ignored_by_patterns(relative, patterns, is_dir=True) and not _may_reinclude_directory(relative, patterns):
+                pruned.add(relative)
+                continue
+            kept_directories.append(name)
+        directory_names[:] = kept_directories
+
+        for name in file_names:
+            path = current / name
+            if path.suffix.casefold() not in normalized_suffixes:
+                continue
+            selection.candidate_files_seen += 1
+            if selection.allows_file(path):
+                selection.files.append(path)
+            else:
+                selection.ignored_file_count += 1
+
+    selection.files.sort()
+    selection.pruned_directories = sorted(pruned)
+    return selection
+
+
+def iter_files(root: Path, suffixes: tuple[str, ...]) -> Iterable[Path]:
+    yield from select_files(root, suffixes).files

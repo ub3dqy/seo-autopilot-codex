@@ -1,0 +1,12 @@
+# Copy this file to .seo-autopilotignore in the target website repository.
+# Rules are applied in order. A leading ! re-includes a reviewed path.
+
+# Project-specific generated or obsolete copies
+legacy-export/**
+reports/**
+screenshots/**
+
+# Example: re-include one reviewed subtree from a normally excluded directory
+# !artifacts/current-production-snapshot/**
+
+# Never re-include browser profiles, credential stores, secrets, or private runtime state.

@@ -15,7 +15,7 @@ from urllib.parse import unquote, urlsplit
 
 from .models import Change, Evidence, Finding, RiskLevel, SafeFix
 from .policy import PolicyPack
-from .utils import iter_files, sha256_bytes
+from .utils import FileSelection, select_files, sha256_bytes
 
 
 PROMPT_INJECTION_PATTERNS = (
@@ -212,7 +212,7 @@ def _make_finding(
     )
 
 
-def _safe_relative_image(html_path: Path, src: str, root: Path) -> Path | None:
+def _safe_relative_image(html_path: Path, src: str, root: Path, scope: FileSelection) -> Path | None:
     if not src or src.startswith(("data:", "//", "#")):
         return None
     parsed = urlsplit(src)
@@ -221,22 +221,24 @@ def _safe_relative_image(html_path: Path, src: str, root: Path) -> Path | None:
     raw_path = unquote(parsed.path)
     if not raw_path or "\x00" in raw_path:
         return None
+
+    candidates: list[Path]
     if raw_path.startswith("/"):
-        candidate = root / raw_path.lstrip("/")
-        if not candidate.is_file():
-            for public_name in ("public", "static"):
-                alternative = root / public_name / raw_path.lstrip("/")
-                if alternative.is_file():
-                    candidate = alternative
-                    break
+        relative = raw_path.lstrip("/")
+        candidates = [root / relative, root / "public" / relative, root / "static" / relative]
     else:
-        candidate = html_path.parent / raw_path
-    try:
-        resolved = candidate.resolve(strict=True)
-        resolved.relative_to(root.resolve())
-    except (OSError, ValueError):
-        return None
-    return resolved if resolved.is_file() else None
+        candidates = [html_path.parent / raw_path]
+
+    for candidate in candidates:
+        if not scope.allows_file(candidate):
+            continue
+        try:
+            resolved = candidate.resolve(strict=True)
+            resolved.relative_to(root)
+        except (OSError, ValueError):
+            continue
+        return resolved
+    return None
 
 
 def image_dimensions(path: Path) -> tuple[int, int] | None:
@@ -299,13 +301,44 @@ def _dimension_replacement(raw: str, width: int, height: int, current_width: str
     return raw[:close_at] + attributes + raw[close_at:] if close_at >= 0 else raw
 
 
+def _scope_evidence(scope: FileSelection) -> list[str]:
+    details = [
+        (
+            "Audit scope: "
+            f"selected_html={len(scope.files)}, "
+            f"candidate_html_seen={scope.candidate_files_seen}, "
+            f"ignored_files={scope.ignored_file_count}, "
+            f"pruned_directories={len(scope.pruned_directories)}, "
+            f"gitignore_applied={scope.gitignore_applied}."
+        )
+    ]
+    if scope.ignore_file:
+        details.append(
+            f"Audit scope applied {scope.ignore_file} with {len(scope.ignore_patterns)} accepted pattern(s)."
+        )
+    for relative in scope.pruned_directories[:50]:
+        details.append(f"Audit scope pruned directory: {relative}")
+    if len(scope.pruned_directories) > 50:
+        details.append(
+            f"Audit scope pruned {len(scope.pruned_directories) - 50} additional directories not listed individually."
+        )
+    for relative in scope.sensitive_paths[:50]:
+        details.append(f"Sensitive path excluded without reading file contents: {relative}")
+    if len(scope.sensitive_paths) > 50:
+        details.append(
+            f"Audit scope excluded {len(scope.sensitive_paths) - 50} additional sensitive paths not listed individually."
+        )
+    return details
+
+
 def audit_repository(root: Path, policy: PolicyPack, *, max_pages: int = 500) -> AuditResult:
     root = root.resolve()
     findings: list[Finding] = []
     safe_fixes: list[SafeFix] = []
-    skipped: list[str] = []
+    scope = select_files(root, (".html", ".htm"))
+    skipped: list[str] = _scope_evidence(scope)
     observations: list[PageObservation] = []
-    html_paths = sorted(iter_files(root, (".html", ".htm")))
+    html_paths = list(scope.files)
     if len(html_paths) > max_pages:
         skipped.append(f"HTML page budget reached: {max_pages} of {len(html_paths)} files were scanned.")
         html_paths = html_paths[:max_pages]
@@ -354,10 +387,10 @@ def audit_repository(root: Path, policy: PolicyPack, *, max_pages: int = 500) ->
                 findings.append(_make_finding(policy, rule_id="IMAGE-ALT-001", relative=relative, line=image.line, message="Image has no alt attribute. Alt text requires semantic owner review.", excerpt=image.raw_tag[:240]))
             if image.width is not None and image.height is not None:
                 continue
-            image_path = _safe_relative_image(html_path, image.src, root)
+            image_path = _safe_relative_image(html_path, image.src, root, scope)
             dimensions = image_dimensions(image_path) if image_path else None
             if dimensions is None:
-                findings.append(_make_finding(policy, rule_id="IMAGE-DIMENSIONS-001", relative=relative, line=image.line, message="Image dimensions are missing and could not be proven from a local image file.", excerpt=image.raw_tag[:240], risk=RiskLevel.REVIEW_REQUIRED))
+                findings.append(_make_finding(policy, rule_id="IMAGE-DIMENSIONS-001", relative=relative, line=image.line, message="Image dimensions are missing and could not be proven from an in-scope local image file.", excerpt=image.raw_tag[:240], risk=RiskLevel.REVIEW_REQUIRED))
                 continue
             width, height = dimensions
             replacement = _dimension_replacement(image.raw_tag, width, height, image.width, image.height)
@@ -404,7 +437,7 @@ def audit_repository(root: Path, policy: PolicyPack, *, max_pages: int = 500) ->
         if not any((likely_public / name).is_file() for name in ("sitemap.xml", "sitemap_index.xml")):
             findings.append(_make_finding(policy, rule_id="TECH-SITEMAP-001", relative=likely_public.relative_to(root).as_posix() or ".", line=1, message="No XML sitemap was found in the detected public root. Generation requires route ownership review."))
     else:
-        skipped.append("No static HTML files were found; framework source is not rewritten without an explicit adapter.")
+        skipped.append("No in-scope static HTML files were found; framework source and rendered/live evidence require separate review.")
 
     findings.sort(key=lambda item: (item.path, item.line or 0, item.rule_id, item.finding_id))
     safe_fixes.sort(key=lambda item: (item.path, item.offset))
@@ -419,6 +452,7 @@ def apply_safe_fixes(
     max_diff_lines: int = 200,
 ) -> list[Change]:
     root = root.resolve()
+    mutation_scope = select_files(root, (".html", ".htm"))
     grouped: dict[str, list[SafeFix]] = defaultdict(list)
     for fix in fixes:
         if fix.risk != RiskLevel.AUTO_FIX:
@@ -435,6 +469,8 @@ def apply_safe_fixes(
             candidate.relative_to(root)
         except ValueError as exc:
             raise ValueError(f"fix escapes repository: {relative}") from exc
+        if not mutation_scope.allows_file(candidate):
+            raise ValueError(f"fix is outside the current audit scope: {relative}")
         before = candidate.read_text(encoding="utf-8")
         after = before
         for fix in sorted(file_fixes, key=lambda item: item.offset, reverse=True):

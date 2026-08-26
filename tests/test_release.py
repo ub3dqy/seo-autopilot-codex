@@ -51,12 +51,13 @@ class ReleaseTests(unittest.TestCase):
                     self.assertFalse(any("source-bundle" in name for name in names))
                     if "-user-" in filename:
                         self.assertTrue(any(name.endswith("/release-manifest.json") for name in names))
-                    with tempfile.TemporaryDirectory() as name:
-                        handle.extractall(name)
-                        extracted = Path(name) / filename.removesuffix(".zip")
+                    with tempfile.TemporaryDirectory() as temp_name:
+                        handle.extractall(temp_name)
+                        extracted = Path(temp_name) / filename.removesuffix(".zip")
                         env = dict(os.environ)
                         env["PYTHONPATH"] = str(extracted / "src")
                         env["PYTHONNOUSERSITE"] = "1"
+
                         completed = subprocess.run(
                             [sys.executable, "-S", "-m", "seo_autopilot", "--version"],
                             cwd=extracted,
@@ -70,6 +71,92 @@ class ReleaseTests(unittest.TestCase):
                         self.assertEqual(completed.returncode, 0, completed.stderr)
                         self.assertEqual(completed.stdout.strip(), f"seo-autopilot {version}")
                         self.assertNotIn("0+unknown", completed.stdout)
+
+                        site = Path(temp_name) / "scope-site"
+                        public = site / "public"
+                        public.mkdir(parents=True)
+                        (site / "package.json").write_text(
+                            '{"dependencies":{"next":"15.0.0","react":"19.0.0"}}\n',
+                            encoding="utf-8",
+                        )
+                        (public / "index.html").write_text(
+                            "<!doctype html><html lang=\"ru\"><head>"
+                            "<title>Current</title>"
+                            "<meta name=\"description\" content=\"Current description\">"
+                            "<link rel=\"canonical\" href=\"https://example.invalid/\">"
+                            "</head><body><h1>Current</h1></body></html>\n",
+                            encoding="utf-8",
+                        )
+                        (public / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")
+                        (public / "sitemap.xml").write_text("<urlset/>\n", encoding="utf-8")
+                        archived = site / "artifacts" / "old"
+                        archived.mkdir(parents=True)
+                        (archived / "old.html").write_text("<html><body>Old</body></html>\n", encoding="utf-8")
+                        (site / "tmp").mkdir()
+                        (site / "tmp" / "old.html").write_text("<html><body>Old</body></html>\n", encoding="utf-8")
+                        profile = site / "artifacts" / "runtime" / "chrome-profile" / "Default"
+                        profile.mkdir(parents=True)
+                        for profile_file in ("Cookies", "History", "Login Data"):
+                            (profile / profile_file).write_text("private-fixture", encoding="utf-8")
+
+                        scope = subprocess.run(
+                            [sys.executable, "-S", "-m", "seo_autopilot", "scope", str(site), "--json"],
+                            cwd=extracted,
+                            env=env,
+                            capture_output=True,
+                            text=True,
+                            encoding="utf-8",
+                            errors="replace",
+                            check=False,
+                        )
+                        self.assertEqual(scope.returncode, 1, scope.stderr or scope.stdout)
+                        scope_payload = json.loads(scope.stdout)
+                        self.assertEqual(scope_payload["status"], "REVIEW_REQUIRED")
+                        self.assertEqual(scope_payload["html_scope"]["selected_paths"], ["public/index.html"])
+                        self.assertFalse(scope_payload["privacy"]["contents_read"])
+                        self.assertTrue(scope_payload["privacy"]["sensitive_paths"])
+
+                        output = Path(temp_name) / "audit-output"
+                        audit = subprocess.run(
+                            [
+                                sys.executable,
+                                "-S",
+                                "-m",
+                                "seo_autopilot",
+                                "audit",
+                                str(site),
+                                "--output",
+                                str(output),
+                            ],
+                            cwd=extracted,
+                            env=env,
+                            capture_output=True,
+                            text=True,
+                            encoding="utf-8",
+                            errors="replace",
+                            check=False,
+                        )
+                        self.assertEqual(audit.returncode, 0, audit.stderr or audit.stdout)
+                        run_payload = json.loads((output / "run.json").read_text(encoding="utf-8"))
+                        self.assertEqual(run_payload["findings"], [])
+                        self.assertEqual(run_payload["planned_fixes"], [])
+                        self.assertFalse(
+                            any(
+                                item.get("path", "").startswith(("artifacts/", "tmp/"))
+                                for item in run_payload["findings"]
+                            )
+                        )
+                        verify = subprocess.run(
+                            [sys.executable, "-S", "-m", "seo_autopilot", "verify", str(output / "run.json")],
+                            cwd=extracted,
+                            env=env,
+                            capture_output=True,
+                            text=True,
+                            encoding="utf-8",
+                            errors="replace",
+                            check=False,
+                        )
+                        self.assertEqual(verify.returncode, 0, verify.stderr or verify.stdout)
         finally:
             subprocess.run([*command, "--clean", "--force"], cwd=ROOT, check=False, capture_output=True, text=True)
 

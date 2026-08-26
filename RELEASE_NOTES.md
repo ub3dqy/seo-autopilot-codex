@@ -1,20 +1,37 @@
-# SEO Autopilot for OpenAI Codex v1.5.1
+# SEO Autopilot for OpenAI Codex v1.5.2
 
-## Bootstrap runtime hotfix
+## Audit scope and privacy hotfix
 
-- Исправлено определение версии при прямом запуске из распакованной User или Engineering Edition через `PYTHONPATH=<edition>/src`.
-- Runtime теперь читает и валидирует корневой `VERSION`, когда package metadata ещё не установлены.
-- Команда `<python> -S -m seo_autopilot --version` из проверенной распакованной поставки возвращает `seo-autopilot 1.5.1`, а не `0+unknown`.
-- User Edition теперь содержит `release-manifest.json`, поэтому policy pack, schemas и source root доступны при прямом временном запуске без постоянной установки.
-- Добавлен регрессионный тест, точно воспроизводящий bootstrap-сценарий без site-packages.
+Первое полевое испытание на крупном Next.js-проекте AIRSYS подтвердило работоспособность one-link bootstrap v1.5.1, но выявило шум области аудита: 628 из 638 findings относились к архивам и временным каталогам `artifacts/**` и `tmp/**`, а все 98 A-level кандидатов находились в старых снимках.
 
-## Safety and compatibility
+v1.5.2 исправляет этот класс ошибок.
 
-- Version gate остаётся обязательным: несовпадающая или неопределённая версия по-прежнему блокирует mutation.
-- Архив должен пройти SHA-256 и безопасную распаковку до импорта runtime.
-- Dirty working tree не очищается через reset, clean или stash.
-- `doctor` и `audit` остаются read-only; `fix` допускается только для чистого Git-репозитория и механически доказанных A-level исправлений.
-- Push, merge и deployment не выполняются автоматически.
+### Deterministic scope
+
+- `artifacts/`, `tmp/`, `temp/`, caches, Playwright/test reports и build output исключаются до HTML-парсинга;
+- untracked-файлы, исключённые через `.gitignore`, не входят в аудит;
+- tracked-файлы остаются видимыми, если не исключены самой политикой SEO Autopilot;
+- добавлен `.seo-autopilotignore` с упорядоченными glob-правилами и `!` re-inclusion;
+- добавлена команда `seo-autopilot scope <workspace> --json`;
+- scope evidence содержит selected files, pruned directories, Git-ignore state и ограничения framework-аудита.
+
+### Privacy boundary
+
+- browser-profile и credential-bearing каталоги исключаются до разбора страниц;
+- обнаружение использует только имена директорий и marker-файлов;
+- Cookies, History, Login Data, Web Data, Firefox databases и иные profile contents не открываются;
+- наличие таких путей возвращает `REVIEW_REQUIRED` в scope preflight и рекомендацию переместить их за пределы workspace.
+
+### Framework behavior
+
+Если Next.js, Astro, Nuxt, SvelteKit или другой framework-проект не содержит in-scope статического HTML, scope возвращает `READY_WITH_LIMITATIONS`, а не чистый SEO PASS. Codex должен отдельно провести read-only source review владельцев routes, metadata, canonical, robots, sitemap, hreflang, JSON-LD, internal links, real 404 и indexability.
+
+### Safety
+
+- dirty working tree по-прежнему разрешает read-only scope/audit, но блокирует `fix`;
+- reset, clean и stash для обхода барьера запрещены;
+- canonical, noindex, redirects, URLs, schema, content, push, merge и deployment автоматически не применяются;
+- рейтинг, трафик, конверсии и доход не гарантируются.
 
 ## Verification
 
@@ -24,7 +41,14 @@
 python scripts/verify_local.py --release
 ```
 
-Он включает компиляцию, source-layout version smoke test, unit/adversarial/transaction tests, prompt-injection boundary, rollback, идемпотентность, secret scan, чистую установку, две детерминированные сборки, SBOM и проверку release assets.
+Release gate должен включать:
+
+- все unit/adversarial/transaction tests;
+- AIRSYS regression на исключение `artifacts/**` и `tmp/**`;
+- privacy regression без чтения browser-profile contents;
+- direct-from-ZIP `scope → doctor → audit → verify` для User и Engineering Edition;
+- две детерминированные сборки;
+- SBOM, SHA-256 и release-asset verification.
 
 ```text
 GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
@@ -33,4 +57,4 @@ Release gate: LOCAL VERIFICATION ONLY
 
 ## Compatibility
 
-v1.5.1 использует Python 3.10 или новее. v1.5.0 остаётся историческим релизом, но его direct-from-archive bootstrap не следует использовать из-за подтверждённого `0+unknown` version-gate defect.
+v1.5.2 использует Python 3.10 или новее. v1.5.1 остаётся исправным one-link runtime, но не содержит нового scope-filter и может создавать шум на проектах с архивными HTML-копиями внутри workspace.
