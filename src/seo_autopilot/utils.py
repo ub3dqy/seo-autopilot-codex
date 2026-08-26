@@ -25,12 +25,15 @@ IGNORED_DIRECTORIES = {
     ".next",
     ".nuxt",
     ".output",
-    "artifacts",
-    "tmp",
-    "temp",
     ".tmp",
     ".cache",
     ".turbo",
+}
+
+ROOT_IGNORED_DIRECTORIES = {
+    "artifacts",
+    "tmp",
+    "temp",
     "playwright-report",
     "test-results",
     "blob-report",
@@ -70,6 +73,10 @@ BROWSER_PROFILE_FILES = {
     "logins.json",
     "places.sqlite",
 }
+
+_IGNORED_CASEFOLD = frozenset(value.casefold() for value in IGNORED_DIRECTORIES)
+_ROOT_IGNORED_CASEFOLD = frozenset(value.casefold() for value in ROOT_IGNORED_DIRECTORIES)
+_SENSITIVE_CASEFOLD = frozenset(value.casefold() for value in SENSITIVE_DIRECTORY_NAMES)
 
 MAX_IGNORE_FILE_BYTES = 64 * 1024
 MAX_IGNORE_PATTERNS = 512
@@ -167,6 +174,16 @@ def run_process(
     )
 
 
+def _is_link_or_junction(path: Path) -> bool:
+    try:
+        if path.is_symlink():
+            return True
+        junction_check = getattr(path, "is_junction", None)
+        return bool(junction_check and junction_check())
+    except OSError:
+        return True
+
+
 def _normalize_relative(path: Path | str) -> str:
     if isinstance(path, Path):
         value = path.as_posix()
@@ -179,7 +196,7 @@ def _normalize_relative(path: Path | str) -> str:
 
 def _read_ignore_patterns(root: Path) -> tuple[Path | None, list[str]]:
     path = root / ".seo-autopilotignore"
-    if not path.is_file() or path.is_symlink():
+    if not path.is_file() or _is_link_or_junction(path):
         return None, []
     try:
         if path.stat().st_size > MAX_IGNORE_FILE_BYTES:
@@ -201,8 +218,7 @@ def _read_ignore_patterns(root: Path) -> tuple[Path | None, list[str]]:
 
 
 def _pattern_matches(relative: str, pattern: str, *, is_dir: bool = False) -> bool:
-    negated = pattern.startswith("!")
-    if negated:
+    if pattern.startswith("!"):
         pattern = pattern[1:]
     pattern = pattern.strip()
     if not pattern:
@@ -229,13 +245,12 @@ def _pattern_matches(relative: str, pattern: str, *, is_dir: bool = False) -> bo
 
 
 def _default_ignored(relative: str) -> bool:
-    ignored_names = {value.casefold() for value in IGNORED_DIRECTORIES}
-    sensitive_names = {value.casefold() for value in SENSITIVE_DIRECTORY_NAMES}
-    return any(
-        part.casefold() in ignored_names or part.casefold() in sensitive_names
-        for part in relative.split("/")
-        if part
-    )
+    parts = [part.casefold() for part in relative.split("/") if part]
+    if not parts:
+        return False
+    if parts[0] in _ROOT_IGNORED_CASEFOLD:
+        return True
+    return any(part in _IGNORED_CASEFOLD or part in _SENSITIVE_CASEFOLD for part in parts)
 
 
 def _ignored_by_patterns(relative: str, patterns: Sequence[str], *, is_dir: bool = False) -> bool:
@@ -280,7 +295,7 @@ def _git_visible_paths(root: Path) -> set[str] | None:
 def _looks_like_profile_directory(name: str) -> bool:
     lowered = name.casefold()
     return (
-        lowered in SENSITIVE_DIRECTORY_NAMES
+        lowered in _SENSITIVE_CASEFOLD
         or (
             "profile" in lowered
             and any(token in lowered for token in ("chrome", "chromium", "browser", "firefox", "playwright"))
@@ -308,10 +323,20 @@ def discover_sensitive_paths(root: Path) -> list[str]:
         except ValueError:
             directory_names[:] = []
             continue
+        if current != root and _is_link_or_junction(current):
+            directory_names[:] = []
+            continue
         if any(part.casefold() in hard_prune for part in relative.parts):
             directory_names[:] = []
             continue
-        directory_names[:] = [name for name in directory_names if name.casefold() not in hard_prune]
+        kept_directories: list[str] = []
+        for name in directory_names:
+            candidate = current / name
+            if name.casefold() in hard_prune or _is_link_or_junction(candidate):
+                continue
+            kept_directories.append(name)
+        directory_names[:] = kept_directories
+
         lowered_files = {name.casefold() for name in file_names}
         lowered_dirs = {name.casefold() for name in directory_names}
         current_lower = current.name.casefold()
@@ -356,15 +381,18 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
         except ValueError:
             directory_names[:] = []
             continue
+        if current != root and _is_link_or_junction(current):
+            directory_names[:] = []
+            continue
         kept_directories: list[str] = []
         for name in directory_names:
             candidate = current_relative / name
             relative = _normalize_relative(candidate)
-            if _ignored_by_patterns(relative, patterns, is_dir=True) and not _may_reinclude_directory(relative, patterns):
+            path = current / name
+            if _is_link_or_junction(path):
                 pruned.add(relative)
                 continue
-            path = current / name
-            if path.is_symlink():
+            if _ignored_by_patterns(relative, patterns, is_dir=True) and not _may_reinclude_directory(relative, patterns):
                 pruned.add(relative)
                 continue
             kept_directories.append(name)
@@ -381,7 +409,7 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
                 ignored_file_count += 1
                 continue
             relative = _normalize_relative(relative_path)
-            if path.is_symlink():
+            if _is_link_or_junction(path):
                 ignored_file_count += 1
                 continue
             if _ignored_by_patterns(relative, patterns):
