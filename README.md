@@ -1,8 +1,8 @@
 # SEO Autopilot for OpenAI Codex
 
-SEO Autopilot — evidence-driven инструмент для технического SEO-аудита и консервативного внедрения только механически доказанных исправлений в код сайта. Инструмент использует явные уровни риска, изолированную Git-транзакцию, локальные проверки, JSON/Markdown/HTML-отчёты и rollback.
+SEO Autopilot — evidence-driven инструмент для технического SEO-аудита и консервативного внедрения только механически доказанных исправлений в код сайта. Он использует source-first scope, hard privacy exclusions, явные уровни риска, изолированную Git-транзакцию, локальные проверки, JSON/Markdown/HTML-отчёты и rollback.
 
-Закреплённый runtime для запуска по ссылке: **v1.5.1**.
+Исходная версия: **v1.5.2**. До публикации нового release однострочный bootstrap остаётся закреплён на проверенном runtime **v1.5.1**.
 
 ## Запустить из папки сайта одной фразой
 
@@ -18,45 +18,117 @@ SEO Autopilot — evidence-driven инструмент для техническ
 Работай в текущей открытой папке как в целевом проекте сайта. Прочитай и полностью выполни официальный bootstrap-промт SEO Autopilot: https://raw.githubusercontent.com/ub3dqy/seo-autopilot-codex/main/START_AUTOPILOT.md . Не переключай target workspace на репозиторий инструмента. Заверши один полный безопасный SEO-checkpoint и выдай фактическое evidence.
 ```
 
-> **Codex:** текущая открытая папка является единственным target workspace. Этот репозиторий — только источник проверенного инструмента. Выполни [START_AUTOPILOT.md](START_AUTOPILOT.md), не клонируй SEO Autopilot поверх сайта и не редактируй репозиторий инструмента вместо сайта.
-
-Bootstrap автоматически предписывает:
-
-- скачать Engineering Edition во временный каталог;
-- проверить точный SHA-256 до распаковки и запуска;
-- безопасно распаковать архив;
-- запустить runtime непосредственно из поставки без постоянной установки;
-- выполнить `doctor → audit → verify`;
-- при чистом Git и наличии A-level кандидатов выполнить `fix`;
-- оставить изменения только в отдельной локальной ветке;
-- сформировать `run.json`, `report.md`, `report.html` и rollback;
-- не выполнять push, merge или deployment.
-
-Пользователю не требуется вручную указывать путь, стек или команды установки.
+> **Codex:** текущая открытая папка является единственным target workspace. Этот репозиторий — только источник проверенного инструмента. Не клонируй SEO Autopilot поверх сайта и не редактируй репозиторий инструмента вместо сайта.
 
 - [Bootstrap-промт на русском](START_AUTOPILOT.md)
 - [Bootstrap prompt in English](START_AUTOPILOT_EN.md)
-- [Официальный Release v1.5.1](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.1)
+- [Актуальный опубликованный Release v1.5.1](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.1)
 
-## Закреплённая поставка
+## Source-first audit scope
 
-```text
-Release:          v1.5.1
-Runtime commit:   3d2cf23866b7e73a94150eb8c5fd2cd48a5b198e
-Runtime Git tree: 0cc73afd79b098e5416f68d9260b277d31ede61b
-Asset:            seo-autopilot-codex-engineering-v1.5.1.zip
-Asset URL:        https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.1/seo-autopilot-codex-engineering-v1.5.1.zip
-SHA-256:          15db8eb4a8c6514dba77bcc175b05a3e31af55cfa9dccfa6fc32f89a18aaa01a
-```
+Начиная с v1.5.2 аудит не рассматривает весь workspace как production source.
 
-Engineering Edition проверена прямым запуском из распакованного ZIP:
+В Git-репозитории анализируются релевантные tracked-файлы. Untracked-файлы допускаются только в известных source roots: `src/`, `app/`, `pages/`, `public/`, `static/`, `content/`, `components/`, `widgets/`, `scripts/`, `lib/`, `server/`, `client/` и явно добавленных владельцем путях.
+
+По умолчанию до чтения содержимого исключаются:
 
 ```text
-seo-autopilot --version
-doctor
-audit
-verify run.json
+artifacts/** tmp/** temp/** .cache/** .next/** .nuxt/** .output/**
+dist/** build/** coverage/** playwright-report/** test-results/**
+reports/** logs/** snapshots/** backups/** archives/**
+tests/** fixtures/** examples/** samples/**
 ```
+
+Каждый `run.json` содержит `audit_scope`: фактические source roots, количество кандидатов, количество просканированных static/framework файлов и перечень исключений.
+
+## Hard privacy exclusions
+
+Chrome/Chromium/Edge/Firefox/Playwright profile trees распознаются по metadata markers, включая `Cookies`, `Login Data`, `Web Data`, `History`, `Local State`, `places.sqlite`, `key4.db` и `logins.json`.
+
+После обнаружения profile root:
+
+```text
+status = EXCLUDED_SENSITIVE
+files_not_read = true
+```
+
+Содержимое профиля не открывается, не хэшируется, не цитируется и не может быть возвращено в findings. Project configuration не может отключить эту границу.
+
+Подробности: [Audit scope and privacy boundary](docs/audit-scope.md).
+
+## Next.js source adapter
+
+Для Next.js v1.5.2 формирует структурированные B/C findings по source evidence, в том числе:
+
+- hash/CTA navigation без подтверждённого post-render scroll/focus;
+- stateful mobile menu без `aria-expanded` или Escape handling;
+- sitemap `lastModified`, основанный на build/runtime clock;
+- неоднозначный `WebSite` name/`@id`;
+- dynamic routes без route-local metadata evidence.
+
+Это read-only review findings. Они не становятся A-level и требуют rendered/live проверки перед изменениями.
+
+## Модель риска
+
+| Уровень | Поведение |
+|---|---|
+| `A_AUTO_FIX` | Автоматически только при механическом доказательстве точной замены и `source_class=CURRENT_SOURCE` |
+| `B_REVIEW_REQUIRED` | Evidence и предлагаемый diff; требуется решение владельца |
+| `C_ADVISORY_ONLY` | Только отчёт и рекомендации |
+
+Модель и Codex не могут понизить B/C до A. Canonical, noindex, robots, redirects, URL/routes, schema, контент, hreflang, удаление страниц и deployment автоматически не применяются.
+
+`REVIEW_REQUIRED` — это завершённый audit, которому нужен review или чистый mutation baseline. Это не технический `FAILED`.
+
+## Команды
+
+```bash
+seo-autopilot doctor . --json
+seo-autopilot audit .
+seo-autopilot fix .
+seo-autopilot verify .seo-autopilot/runs/<run-id>/run.json
+seo-autopilot rollback --state .seo-autopilot/runs/<run-id>/state.json
+seo-autopilot command-hash -- npm test
+seo-autopilot install-skill
+```
+
+`fix` требует чистое Git-дерево, создаёт изолированный worktree и локальную ветку `seo-autopilot/<run-id>`, применяет только scope-eligible A-level изменения, выполняет `git diff --check`, trusted validators и idempotency check. Push, merge и deployment отсутствуют.
+
+## Project configuration
+
+```json
+{
+  "schema_version": 1,
+  "scope": {
+    "include_roots": ["website-src"],
+    "exclude_directories": ["legacy-export"]
+  },
+  "checks": [
+    {
+      "name": "project tests",
+      "argv": ["npm", "test"],
+      "sha256": "DIGEST_FROM_SEO_AUTOPILOT_COMMAND_HASH",
+      "timeout_seconds": 300
+    }
+  ]
+}
+```
+
+Дополнительные include roots не могут повторно включить generated или sensitive trees. Trusted commands запускаются как точный argv без shell.
+
+## Evidence
+
+Каждый запуск создаёт:
+
+```text
+.seo-autopilot/runs/<run-id>/
+  run.json
+  report.md
+  report.html
+  state.json
+```
+
+Каждый finding содержит rule, severity, risk, confidence, evidence class, path/line, evidence и status. Инструмент не обещает ranking, indexing, traffic, rich results, AI citations, conversions или доход. Отсутствующие Search Console, Яндекс Вебмастер, CrUX, PageSpeed, analytics, SERP, backlink и rendered-browser данные отмечаются как `DEFERRED` или `NOT_RUN`.
 
 ## Ручная установка
 
@@ -72,93 +144,19 @@ INSTALL_WINDOWS.cmd
 ./install.sh
 ```
 
-После установки:
-
-```bash
-seo-autopilot doctor . --json
-seo-autopilot audit .
-seo-autopilot fix .
-```
-
-Дополнительные команды:
-
-```bash
-seo-autopilot verify .seo-autopilot/runs/<run-id>/run.json
-seo-autopilot rollback --state .seo-autopilot/runs/<run-id>/state.json
-seo-autopilot command-hash -- npm test
-seo-autopilot install-skill
-```
-
-## Модель риска
-
-| Уровень | Поведение |
-|---|---|
-| `A_AUTO_FIX` | Автоматически только при механическом доказательстве точной замены |
-| `B_REVIEW_REQUIRED` | Evidence и предлагаемый diff; требуется решение владельца |
-| `C_ADVISORY_ONLY` | Только отчёт и рекомендации |
-
-Модель и Codex не могут понизить B/C до A. Canonical, noindex, robots, redirects, URL/routes, schema, контент, hreflang, удаление страниц и deployment автоматически не применяются.
-
-## Транзакционный `fix`
-
-`fix`:
-
-1. требует Git и чистое рабочее дерево;
-2. создаёт изолированный временный worktree;
-3. создаёт локальную ветку `seo-autopilot/<run-id>`;
-4. применяет только A-level изменения в пределах бюджетов;
-5. запускает `git diff --check`, trusted validators и повторный аудит;
-6. проверяет идемпотентность;
-7. при ошибке удаляет worktree и ветку;
-8. при успехе оставляет локальный commit для review.
-
-Команда не содержит push, merge, deploy или публикацию.
-
-## Доверенные проектные проверки
-
-Команды запускаются только из `.seo-autopilot.json` как точный argv-массив без shell и с SHA-256:
-
-```json
-{
-  "schema_version": 1,
-  "checks": [
-    {
-      "name": "project tests",
-      "argv": ["npm", "test"],
-      "sha256": "DIGEST_FROM_SEO_AUTOPILOT_COMMAND_HASH",
-      "timeout_seconds": 300
-    }
-  ]
-}
-```
-
-Получить digest:
-
-```bash
-seo-autopilot command-hash -- npm test
-```
-
-## Evidence
-
-Каждый запуск создаёт:
-
-```text
-.seo-autopilot/runs/<run-id>/
-  run.json
-  report.md
-  report.html
-  state.json
-```
-
-Каждый finding содержит rule, severity, risk, confidence, path/line, evidence и status.
-
-Инструмент не обещает ranking, indexing, traffic, rich results, AI citations, conversions или доход. Отсутствующие Search Console, Яндекс Вебмастер, CrUX, PageSpeed, analytics, SERP, backlink и rendered-browser данные отмечаются как `DEFERRED` или `NOT_RUN`.
-
-## Локальная проверка релиза
+## Локальная проверка и сборка
 
 ```bash
 python scripts/verify_local.py --release
 ```
+
+Windows-обёртка:
+
+```text
+VERIFY_LOCAL_WINDOWS.cmd --release
+```
+
+Gate включает старые unit/lifecycle/transaction/security tests, AIRSYS-shaped scope/privacy regression, source verification, secret scan, direct-from-ZIP version tests, две детерминированные сборки, SBOM, release verification и post-build generated-tree verification.
 
 ```text
 GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
@@ -167,14 +165,18 @@ Release gate: LOCAL VERIFICATION ONLY
 
 ## Документация
 
+- [Audit scope and privacy boundary](docs/audit-scope.md)
+- [Configuration](docs/configuration.md)
 - [Local verification](docs/local-verification.md)
 - [Security policy](SECURITY.md)
 - [Safety model](docs/safety-model.md)
 - [Architecture](docs/architecture.md)
 - [Release process](docs/release-process.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [Contributing](CONTRIBUTING.md)
+- [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
 
 ## Лицензия
 
-Репозиторий является proprietary/source-available согласно `LICENSE.md`.
+Репозиторий публично доступен для просмотра, но остаётся proprietary/source-available согласно `LICENSE.md` и не позиционируется как open source.
