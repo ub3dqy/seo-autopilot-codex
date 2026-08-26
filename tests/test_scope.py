@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from seo_autopilot.scope import inspect_scope
 from seo_autopilot.utils import select_files
 
 
@@ -17,6 +18,10 @@ class AuditScopeTests(unittest.TestCase):
             subprocess.run(["git", "config", "user.name", "SEO Scope Test"], cwd=root, check=True)
             subprocess.run(["git", "config", "user.email", "scope-test@localhost.invalid"], cwd=root, check=True)
 
+            (root / "package.json").write_text(
+                '{"dependencies":{"next":"15.0.0","react":"19.0.0"}}\n',
+                encoding="utf-8",
+            )
             (root / "public").mkdir()
             (root / "public" / "index.html").write_text("<html></html>\n", encoding="utf-8")
 
@@ -44,7 +49,14 @@ class AuditScopeTests(unittest.TestCase):
                     pass
 
             subprocess.run(
-                ["git", "add", "public/index.html", ".gitignore", ".seo-autopilotignore"],
+                [
+                    "git",
+                    "add",
+                    "public/index.html",
+                    "package.json",
+                    ".gitignore",
+                    ".seo-autopilotignore",
+                ],
                 cwd=root,
                 check=True,
             )
@@ -58,6 +70,12 @@ class AuditScopeTests(unittest.TestCase):
             self.assertTrue(selection.gitignore_applied)
             self.assertEqual(selection.ignore_file, ".seo-autopilotignore")
             self.assertTrue(any("chrome-profile" in path for path in selection.sensitive_paths))
+
+            payload = inspect_scope(root)
+            self.assertEqual(payload["status"], "REVIEW_REQUIRED")
+            self.assertEqual(payload["stack"], "nextjs")
+            self.assertFalse(payload["privacy"]["contents_read"])
+            self.assertEqual(payload["html_scope"]["selected_paths"], ["public/index.html"])
 
     def test_ignore_negation_reincludes_a_selected_file(self) -> None:
         with tempfile.TemporaryDirectory() as name:
@@ -89,6 +107,21 @@ class AuditScopeTests(unittest.TestCase):
             selection = select_files(root, (".html",))
             selected = [path.relative_to(root).as_posix() for path in selection.files]
             self.assertEqual(selected, ["artifacts/current/index.html"])
+
+    def test_framework_without_in_scope_html_is_ready_with_limitations(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / "package.json").write_text(
+                '{"dependencies":{"next":"15.0.0","react":"19.0.0"}}\n',
+                encoding="utf-8",
+            )
+            (root / "artifacts").mkdir()
+            (root / "artifacts" / "snapshot.html").write_text("<html></html>\n", encoding="utf-8")
+
+            payload = inspect_scope(root)
+            self.assertEqual(payload["status"], "READY_WITH_LIMITATIONS")
+            self.assertEqual(payload["html_scope"]["selected_files"], 0)
+            self.assertTrue(payload["limitations"])
 
 
 if __name__ == "__main__":
