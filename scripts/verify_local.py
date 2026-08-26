@@ -17,10 +17,15 @@ from typing import Any, Sequence
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = ROOT / "local-verification"
 
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 try:
+    from prepare_editions import verify_generated_tree, write_marker
     from seo_autopilot.redaction import redact_text
 except Exception:  # pragma: no cover - safe fallback before package import is available
+    verify_generated_tree = None
+    write_marker = None
+
     def redact_text(text: str, exact_values: Sequence[str] = ()) -> str:
         result = text
         for value in exact_values:
@@ -236,6 +241,30 @@ def append_checksum(path: Path, filename: str) -> None:
     sums_path.write_text("\n".join(existing) + "\n", encoding="utf-8")
 
 
+def seal_dist_marker() -> None:
+    """Re-seal the managed dist tree after trusted SBOM/checksum generation."""
+    if write_marker is None or verify_generated_tree is None:
+        raise RuntimeError("prepare_editions marker helpers are unavailable")
+    dist = ROOT / "dist"
+    marker = dist / ".seo-autopilot-generated.json"
+    if not marker.is_file():
+        raise RuntimeError("refusing to seal an unmanaged dist directory")
+    try:
+        payload = json.loads(marker.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"invalid dist marker: {exc}") from exc
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    if (
+        payload.get("schema_version") != 1
+        or payload.get("generator") != "prepare_editions.py"
+        or payload.get("edition") != "dist"
+        or payload.get("version") != version
+    ):
+        raise RuntimeError("refusing to seal an unrecognized or version-mismatched dist tree")
+    write_marker(dist, "dist", version)
+    verify_generated_tree(dist, "dist")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run the complete SEO Autopilot verification gate locally, without GitHub Actions."
@@ -327,10 +356,25 @@ def main() -> int:
                 )
                 if not verification.failed:
                     append_checksum(ROOT / "dist", sbom_name)
-                    verification.run(
-                        "Verify local release assets",
-                        [sys.executable, "scripts/verify_release.py", "dist"],
-                    )
+                    try:
+                        seal_dist_marker()
+                    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+                        verification.assertion("Seal generated release tree", False, str(exc))
+                    else:
+                        verification.assertion(
+                            "Seal generated release tree",
+                            True,
+                            "Managed dist marker updated after SBOM and SHA256SUMS generation.",
+                        )
+                    if not verification.failed:
+                        verification.run(
+                            "Verify local release assets",
+                            [sys.executable, "scripts/verify_release.py", "dist"],
+                        )
+                        verification.run(
+                            "Post-build generated-tree verification",
+                            [sys.executable, "prepare_editions.py", "--verify-only"],
+                        )
 
         if args.live and not verification.failed:
             accepted = (0,) if args.require_live else (0, 2)

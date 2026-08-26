@@ -73,6 +73,34 @@ class ReleaseTests(unittest.TestCase):
         finally:
             subprocess.run([*command, "--clean", "--force"], cwd=ROOT, check=False, capture_output=True, text=True)
 
+    def test_release_gate_reseals_dist_after_sbom_mutation(self) -> None:
+        command = [sys.executable, "prepare_editions.py"]
+        try:
+            subprocess.run([*command, "--build-zips", "--force"], cwd=ROOT, check=True, capture_output=True, text=True)
+            dist = ROOT / "dist"
+            synthetic = dist / "synthetic.spdx.json"
+            synthetic.write_text('{"spdxVersion":"SPDX-2.3"}\n', encoding="utf-8")
+            sums = dist / "SHA256SUMS"
+            sums.write_text(
+                sums.read_text(encoding="utf-8")
+                + f"{digest(synthetic)}  {synthetic.name}\n",
+                encoding="utf-8",
+            )
+            stale = subprocess.run([*command, "--verify-only"], cwd=ROOT, check=False, capture_output=True, text=True)
+            self.assertNotEqual(stale.returncode, 0)
+
+            sys.path.insert(0, str(ROOT))
+            try:
+                from scripts.verify_local import seal_dist_marker
+                seal_dist_marker()
+            finally:
+                sys.path.pop(0)
+
+            verified = subprocess.run([*command, "--verify-only"], cwd=ROOT, check=False, capture_output=True, text=True)
+            self.assertEqual(verified.returncode, 0, verified.stderr or verified.stdout)
+        finally:
+            subprocess.run([*command, "--clean", "--force"], cwd=ROOT, check=False, capture_output=True, text=True)
+
 
 if __name__ == "__main__":
     unittest.main()
