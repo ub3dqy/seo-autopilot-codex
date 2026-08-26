@@ -172,7 +172,9 @@ def _normalize_relative(path: Path | str) -> str:
         value = path.as_posix()
     else:
         value = str(path).replace("\\", "/")
-    return value.lstrip("./")
+    while value.startswith("./"):
+        value = value[2:]
+    return value.lstrip("/")
 
 
 def _read_ignore_patterns(root: Path) -> tuple[Path | None, list[str]]:
@@ -269,7 +271,7 @@ def _git_visible_paths(root: Path) -> set[str] | None:
     if completed.returncode != 0:
         return None
     return {
-        _normalize_relative(value)
+        _normalize_relative(value).casefold()
         for value in completed.stdout.split("\x00")
         if value
     }
@@ -385,7 +387,7 @@ def select_files(root: Path, suffixes: tuple[str, ...]) -> FileSelection:
             if _ignored_by_patterns(relative, patterns):
                 ignored_file_count += 1
                 continue
-            if git_visible is not None and relative not in git_visible:
+            if git_visible is not None and relative.casefold() not in git_visible:
                 ignored_file_count += 1
                 continue
             if not path.is_file():
