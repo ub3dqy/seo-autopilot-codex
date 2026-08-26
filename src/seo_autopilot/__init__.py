@@ -21,9 +21,14 @@ def _source_tree_version() -> str | None:
     return value if _VERSION_RE.fullmatch(value) else None
 
 
-try:
-    __version__ = version("seo-autopilot-codex")
-except PackageNotFoundError:
-    __version__ = _source_tree_version() or "0+unknown"
+_source_version = _source_tree_version()
+if _source_version is not None:
+    # A verified unpacked release must identify itself, even if another version is installed globally.
+    __version__ = _source_version
+else:
+    try:
+        __version__ = version("seo-autopilot-codex")
+    except PackageNotFoundError:
+        __version__ = "0+unknown"
 
 __all__ = ["__version__"]
