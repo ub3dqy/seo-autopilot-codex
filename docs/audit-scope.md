@@ -4,10 +4,16 @@ SEO Autopilot separates current website evidence from generated copies, test out
 
 ## Read-only preflight
 
-From the verified release root:
+Installed command:
 
 ```bash
-PYTHONPATH=src PYTHONNOUSERSITE=1 python -S -m seo_autopilot.scope /absolute/path/to/site --json
+seo-autopilot scope /absolute/path/to/site --json
+```
+
+Directly from a verified release root:
+
+```bash
+PYTHONPATH=src PYTHONNOUSERSITE=1 python -S -m seo_autopilot scope /absolute/path/to/site --json
 ```
 
 The command reports:
@@ -24,7 +30,7 @@ The scope command does not parse page contents. Browser-profile detection does n
 
 ## Default exclusions
 
-The default audit excludes common repository metadata, dependencies, generated output, snapshots and temporary tools, including:
+The default audit excludes common repository metadata, dependencies and generated output at any depth:
 
 ```text
 .git/
@@ -36,19 +42,24 @@ node_modules/
 dist/
 build/
 coverage/
+.cache/
+.turbo/
+```
+
+The following generic generated names are excluded only when they are top-level directories in the target workspace, so a legitimate route such as `src/app/artifacts/` is not silently removed:
+
+```text
 artifacts/
 tmp/
 temp/
-.cache/
-.turbo/
 playwright-report/
 test-results/
 blob-report/
 ```
 
-Credential-bearing and browser-profile directory names such as `.ssh`, `.aws`, `chrome-profile`, `browser-profile`, `firefox-profile` and `User Data` are excluded before HTML parsing.
+Credential-bearing and browser-profile directory names such as `.ssh`, `.aws`, `chrome-profile`, `browser-profile`, `firefox-profile` and `User Data` are excluded before HTML parsing. Symlink and Windows junction/reparse-point directories are not traversed.
 
-Tracked files remain eligible even when a later Git ignore rule matches them. Untracked files excluded by `.gitignore` are not audited by default.
+Tracked files remain eligible even when a later Git ignore rule matches them. Untracked files excluded by `.gitignore` are not audited by default. Git-path comparison follows the host filesystem's case behavior instead of forcing all paths to lowercase.
 
 ## Project-specific `.seo-autopilotignore`
 
@@ -63,9 +74,16 @@ reports/**
 !artifacts/current-production-snapshot/**
 ```
 
-Rules are evaluated in order. A leading `!` re-includes a matching file or subtree. The file is bounded to 64 KiB and 512 usable patterns. Invalid, overlong and NUL-containing lines are ignored.
+Rules are evaluated in order. A leading `!` re-includes a matching ordinary file or subtree. The file is bounded to 64 KiB and 512 usable patterns. Invalid, overlong and NUL-containing lines are ignored.
 
-Re-inclusion through `.seo-autopilotignore` does not override Git's own ignored-untracked boundary. A generated export that must be audited should be placed in an explicitly reviewed, non-ignored location or tracked intentionally.
+Re-inclusion cannot override any of these hard privacy boundaries:
+
+- named credential directories such as `.ssh` or `.aws`;
+- detected browser profiles;
+- symlink or junction traversal;
+- Git's ignored-untracked boundary.
+
+A generated export that must be audited should be placed in an explicitly reviewed, non-sensitive location and either tracked intentionally or made visible to Git.
 
 ## Framework projects
 
