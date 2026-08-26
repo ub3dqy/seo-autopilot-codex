@@ -24,6 +24,19 @@ SEO Autopilot — evidence-driven инструмент для техническ
 - [Bootstrap prompt in English](START_AUTOPILOT_EN.md)
 - [Актуальный опубликованный Release v1.5.1](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.1)
 
+### Текущая закреплённая поставка до публикации v1.5.2
+
+```text
+Release:          v1.5.1
+Runtime commit:   3d2cf23866b7e73a94150eb8c5fd2cd48a5b198e
+Runtime Git tree: 0cc73afd79b098e5416f68d9260b277d31ede61b
+Asset:            seo-autopilot-codex-engineering-v1.5.1.zip
+Asset URL:        https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.1/seo-autopilot-codex-engineering-v1.5.1.zip
+SHA-256:          15db8eb4a8c6514dba77bcc175b05a3e31af55cfa9dccfa6fc32f89a18aaa01a
+```
+
+Этот блок намеренно совпадает с `START_AUTOPILOT.md`. После публикации и обратной SHA-256-проверки v1.5.2 отдельный проверенный bootstrap-commit заменит все значения одновременно.
+
 ## Source-first audit scope
 
 Начиная с v1.5.2 аудит не рассматривает весь workspace как production source.
