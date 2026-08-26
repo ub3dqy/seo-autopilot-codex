@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import io
+import json
 import os
 import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
+from seo_autopilot.entrypoint import main as entrypoint_main
 from seo_autopilot.scope import inspect_scope
 from seo_autopilot.utils import select_files
 
@@ -122,6 +126,18 @@ class AuditScopeTests(unittest.TestCase):
             self.assertEqual(payload["status"], "READY_WITH_LIMITATIONS")
             self.assertEqual(payload["html_scope"]["selected_files"], 0)
             self.assertTrue(payload["limitations"])
+
+    def test_unified_cli_exposes_scope_as_json(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / "index.html").write_text("<html></html>\n", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = entrypoint_main(["scope", str(root), "--json"])
+            payload = json.loads(output.getvalue())
+            self.assertEqual(code, 0)
+            self.assertEqual(payload["status"], "READY")
+            self.assertEqual(payload["html_scope"]["selected_paths"], ["index.html"])
 
 
 if __name__ == "__main__":
