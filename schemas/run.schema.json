@@ -44,7 +44,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["finding_id", "rule_id", "severity", "title", "message", "path", "risk", "confidence", "evidence", "auto_fix_available", "status"],
+        "required": ["finding_id", "rule_id", "severity", "title", "message", "path", "risk", "confidence", "evidence", "evidence_class", "auto_fix_available", "status"],
         "properties": {
           "finding_id": {"type": "string"},
           "rule_id": {"type": "string"},
@@ -56,6 +56,7 @@
           "risk": {"enum": ["A_AUTO_FIX", "B_REVIEW_REQUIRED", "C_ADVISORY_ONLY"]},
           "confidence": {"type": "number", "minimum": 0, "maximum": 1},
           "evidence": {"type": "array"},
+          "evidence_class": {"enum": ["DETERMINISTIC_STATIC", "FRAMEWORK_SOURCE", "LIVE_BROWSER", "EXTERNAL_DATA", "OWNER_FACT", "SCOPE_CONTROL"]},
           "auto_fix_available": {"type": "boolean"},
           "status": {"enum": ["OPEN", "FIXED", "SKIPPED", "DEFERRED"]}
         },
@@ -70,7 +71,65 @@
     "branch": {"type": ["string", "null"]},
     "rollback": {"type": "array", "items": {"type": "string"}},
     "budgets": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
-    "external_sources": {"type": "array", "items": {"type": "string"}}
+    "external_sources": {"type": "array", "items": {"type": "string"}},
+    "audit_scope": {
+      "type": ["object", "null"],
+      "required": [
+        "mode",
+        "git_repository",
+        "source_roots",
+        "tracked_candidates",
+        "untracked_source_candidates",
+        "candidate_files",
+        "static_html_files_scanned",
+        "framework_files_scanned",
+        "excluded_generated_directories",
+        "excluded_non_production_directories",
+        "excluded_sensitive_directories",
+        "metadata_entries_examined",
+        "metadata_scan_truncated"
+      ],
+      "properties": {
+        "mode": {"const": "SOURCE_FIRST"},
+        "git_repository": {"type": "boolean"},
+        "source_roots": {"type": "array", "items": {"type": "string"}},
+        "tracked_candidates": {"type": "integer", "minimum": 0},
+        "untracked_source_candidates": {"type": "integer", "minimum": 0},
+        "candidate_files": {"type": "integer", "minimum": 0},
+        "static_html_files_scanned": {"type": "integer", "minimum": 0},
+        "framework_files_scanned": {"type": "integer", "minimum": 0},
+        "excluded_generated_directories": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/scopeExclusion"}
+        },
+        "excluded_non_production_directories": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/scopeExclusion"}
+        },
+        "excluded_sensitive_directories": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/scopeExclusion"}
+        },
+        "metadata_entries_examined": {"type": "integer", "minimum": 0},
+        "metadata_scan_truncated": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "scopeExclusion": {
+      "type": "object",
+      "required": ["path", "status", "reason", "detection_markers", "files_not_read", "entries_not_read"],
+      "properties": {
+        "path": {"type": "string"},
+        "status": {"enum": ["EXCLUDED_BY_SCOPE", "EXCLUDED_SENSITIVE"]},
+        "reason": {"type": "string"},
+        "detection_markers": {"type": "array", "items": {"type": "string"}},
+        "files_not_read": {"type": "boolean"},
+        "entries_not_read": {"type": ["integer", "null"], "minimum": 0}
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }
