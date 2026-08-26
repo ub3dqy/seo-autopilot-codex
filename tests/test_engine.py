@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from seo_autopilot.engine import BudgetExceeded, apply_safe_fixes, audit_repository
-from seo_autopilot.models import RiskLevel
+from seo_autopilot.models import RiskLevel, SafeFix
 from seo_autopilot.policy import load_policy_pack
 
 
@@ -120,6 +120,50 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(result.safe_fixes, [])
             self.assertFalse(any(item.path.startswith(("artifacts/", "tmp/")) for item in result.findings))
             self.assertEqual(result.findings, [])
+            self.assertTrue(any("Audit scope pruned directory: artifacts" in item for item in result.skipped))
+
+    def test_current_html_cannot_use_excluded_image_as_auto_fix_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / "artifacts").mkdir()
+            (root / "artifacts" / "private.png").write_bytes(png_header(800, 600))
+            (root / "index.html").write_text(
+                "<!doctype html><html lang=\"en\"><head>"
+                "<title>Current</title>"
+                "<meta name=\"description\" content=\"Current description\">"
+                "<link rel=\"canonical\" href=\"https://example.invalid/\">"
+                "</head><body><img src=\"/artifacts/private.png\" alt=\"Private\"></body></html>\n",
+                encoding="utf-8",
+            )
+            (root / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")
+            (root / "sitemap.xml").write_text("<urlset/>\n", encoding="utf-8")
+
+            result = audit_repository(root, POLICY)
+            self.assertEqual(result.safe_fixes, [])
+            dimension = next(item for item in result.findings if item.rule_id == "IMAGE-DIMENSIONS-001")
+            self.assertEqual(dimension.risk, RiskLevel.REVIEW_REQUIRED)
+            self.assertIn("in-scope", dimension.message)
+
+    def test_manual_safe_fix_cannot_target_excluded_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archived = root / "artifacts"
+            archived.mkdir()
+            path = archived / "old.html"
+            path.write_text("<img src=\"x.png\">\n", encoding="utf-8")
+            fix = SafeFix(
+                finding_id="SEO-MANUAL-SCOPE-TEST",
+                path="artifacts/old.html",
+                line=1,
+                offset=0,
+                original='<img src="x.png">',
+                replacement='<img src="x.png" width="1" height="1">',
+                description="test",
+            )
+
+            with self.assertRaisesRegex(ValueError, "outside the current audit scope"):
+                apply_safe_fixes(root, [fix])
+            self.assertEqual(path.read_text(encoding="utf-8"), "<img src=\"x.png\">\n")
 
 
 if __name__ == "__main__":
