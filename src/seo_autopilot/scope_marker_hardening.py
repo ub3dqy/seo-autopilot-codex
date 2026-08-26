@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import re
+from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
 from .models import ScopeExclusion, ScopeExclusionStatus
@@ -8,20 +10,93 @@ from .models import ScopeExclusion, ScopeExclusionStatus
 
 _ACTIVATED = False
 
+_STRONG_PROFILE_MARKERS = {
+    "cert9.db",
+    "cookies.sqlite",
+    "formhistory.sqlite",
+    "key4.db",
+    "local state",
+    "login data",
+    "logins.json",
+    "places.sqlite",
+    "secure preferences",
+    "web data",
+}
+
+_BROWSER_CONTAINER_RE = re.compile(
+    r"(?:chrome|chromium|edge|firefox|playwright|browser[-_ ]?profile|user[-_ ]?data)",
+    re.IGNORECASE,
+)
+
+
+def _parts(relative: str) -> tuple[str, ...]:
+    return PurePosixPath(relative.replace("\\", "/")).parts
+
+
+def _is_source_rooted(relative: str, source_roots: set[str]) -> bool:
+    parts = _parts(relative)
+    return bool(parts) and parts[0].casefold() in source_roots
+
+
+def _marker_context(scope, marker_relative: str) -> tuple[bool, bool]:
+    parts = _parts(marker_relative)
+    parent = parts[:-1]
+    has_profile_directory = any(scope.PROFILE_DIRECTORY_RE.match(part) for part in parent)
+    has_explicit_browser_container = any(_BROWSER_CONTAINER_RE.search(part) for part in parent)
+    if len(parent) >= 1 and parts[-1].casefold() == "cookies" and parent[-1].casefold() == "network":
+        has_profile_directory = True
+    return has_profile_directory, has_explicit_browser_container
+
+
+def _qualifies_as_profile(
+    *,
+    profile_root: str,
+    marker_names: set[str],
+    has_profile_directory: bool,
+    has_explicit_browser_container: bool,
+    source_roots: set[str],
+) -> bool:
+    strong = bool(marker_names.intersection(_STRONG_PROFILE_MARKERS))
+    multiple = len(marker_names) >= 2
+    source_rooted = _is_source_rooted(profile_root, source_roots)
+
+    if source_rooted:
+        # Source trees may legitimately contain routes/directories named
+        # cookies, history, preferences, bookmarks, or default. Require an
+        # explicit browser container, or a profile-shaped path plus stronger
+        # corroboration, before excluding any source subtree.
+        return has_explicit_browser_container or (
+            has_profile_directory and (strong or multiple)
+        )
+
+    # Outside known source roots, one distinctive database filename is enough
+    # to fail closed. Ambiguous filenames still require browser-shaped context
+    # or multiple independent markers.
+    return strong or multiple or has_profile_directory or has_explicit_browser_container
+
 
 def _metadata_exclusions(root: Path):
-    """Metadata-only scope discovery with file-type validation for profile markers.
+    """Discover scope/privacy exclusions using metadata only.
 
-    Browser databases such as ``Cookies`` and ``History`` are files. Route and
-    content directories with the same names are ordinary source directories and
-    must never become privacy exclusions. No marker content is opened here.
+    Browser marker names are considered only when the directory entry is a
+    regular file. A Next.js route directory such as ``app/cookies/`` therefore
+    remains current source. Marker content is never opened, excerpted, or
+    hashed by this function.
     """
     from . import scope
+
+    configured_roots, _ = scope._load_scope_config(root)
+    source_roots = {item.casefold() for item in scope.DEFAULT_SOURCE_ROOTS}
+    source_roots.update(item.casefold() for item in configured_roots)
 
     generated: list[ScopeExclusion] = []
     non_production: list[ScopeExclusion] = []
     sensitive: list[ScopeExclusion] = []
     sensitive_roots: set[str] = set()
+    candidate_paths: dict[str, set[str]] = defaultdict(set)
+    candidate_names: dict[str, set[str]] = defaultdict(set)
+    candidate_profile_context: dict[str, bool] = defaultdict(bool)
+    candidate_container_context: dict[str, bool] = defaultdict(bool)
     entries_examined = 0
     truncated = False
     stack: list[Path] = [root]
@@ -57,9 +132,11 @@ def _metadata_exclusions(root: Path):
             except OSError:
                 continue
             if not is_file or is_link:
-                # Critical boundary: Next.js routes such as app/cookies/ and
-                # app/history/ are directories, not browser databases.
+                # Critical regression boundary: route/content directories named
+                # cookies, history, preferences, bookmarks, etc. are not
+                # browser database markers.
                 continue
+
             marker_relative = (
                 (PurePosixPath(relative_dir) / entry.name).as_posix()
                 if relative_dir != "."
@@ -68,17 +145,33 @@ def _metadata_exclusions(root: Path):
             profile_root = scope._profile_root_from_marker(marker_relative)
             if profile_root is None:
                 continue
+            profile_context, container_context = _marker_context(scope, marker_relative)
+            candidate_paths[profile_root].add(marker_relative)
+            candidate_names[profile_root].add(marker)
+            candidate_profile_context[profile_root] |= profile_context
+            candidate_container_context[profile_root] |= container_context
+
+            if not _qualifies_as_profile(
+                profile_root=profile_root,
+                marker_names=candidate_names[profile_root],
+                has_profile_directory=candidate_profile_context[profile_root],
+                has_explicit_browser_container=candidate_container_context[profile_root],
+                source_roots=source_roots,
+            ):
+                continue
+
             sensitive_roots.add(profile_root)
             sensitive.append(
                 ScopeExclusion(
                     path=profile_root,
                     status=ScopeExclusionStatus.EXCLUDED_SENSITIVE,
                     reason="browser_profile",
-                    detection_markers=[marker_relative],
+                    detection_markers=sorted(candidate_paths[profile_root]),
                     files_not_read=True,
                     entries_not_read=len(entries),
                 )
             )
+
         if any(scope._under(relative_dir, sensitive_root) for sensitive_root in sensitive_roots):
             continue
 
