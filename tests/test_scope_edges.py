@@ -55,6 +55,34 @@ class AuditScopeEdgeTests(unittest.TestCase):
             self.assertEqual(selection.files, [])
             self.assertIn("junction-copy", selection.pruned_directories)
 
+    def test_ignore_negation_cannot_reinclude_sensitive_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            profile = root / "artifacts" / "runtime" / "chrome-profile"
+            profile.mkdir(parents=True)
+            (profile / "extension.html").write_text("<html></html>\n", encoding="utf-8")
+            (profile / "Cookies").write_text("private\n", encoding="utf-8")
+            (root / ".seo-autopilotignore").write_text(
+                "!artifacts/**\n!artifacts/runtime/chrome-profile/**\n",
+                encoding="utf-8",
+            )
+
+            selection = select_files(root, (".html",))
+            self.assertEqual(selection.files, [])
+            self.assertTrue(any("chrome-profile" in item for item in selection.sensitive_paths))
+
+    def test_ignore_negation_cannot_reinclude_credential_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            private = root / ".ssh"
+            private.mkdir()
+            (private / "help.html").write_text("<html></html>\n", encoding="utf-8")
+            (root / ".seo-autopilotignore").write_text("!.ssh/**\n", encoding="utf-8")
+
+            selection = select_files(root, (".html",))
+            self.assertEqual(selection.files, [])
+            self.assertIn(".ssh", selection.sensitive_paths)
+
 
 if __name__ == "__main__":
     unittest.main()
