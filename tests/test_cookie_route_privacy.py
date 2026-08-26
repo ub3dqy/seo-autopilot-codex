@@ -34,7 +34,6 @@ class CookieRoutePrivacyTests(unittest.TestCase):
 
             route_root = root / "src" / "app" / "(site)" / "(legacy)"
             route_names = ("cookies", "history", "preferences", "bookmarks")
-            expected_paths: set[str] = set()
             for route_name in route_names:
                 page = route_root / route_name / "page.tsx"
                 page.parent.mkdir(parents=True, exist_ok=True)
@@ -43,7 +42,6 @@ class CookieRoutePrivacyTests(unittest.TestCase):
                     "export default function Page(){ return <main><h1>Policy</h1></main>; }\n",
                     encoding="utf-8",
                 )
-                expected_paths.add(page.relative_to(root).as_posix())
 
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-m", "route baseline"], cwd=root, check=True, capture_output=True)
@@ -55,19 +53,24 @@ class CookieRoutePrivacyTests(unittest.TestCase):
             (profile / "Login Data").write_bytes(b"private-login-db")
             (profile / "secret.html").write_text("must not be audited", encoding="utf-8")
 
-            result = audit_repository(root, POLICY)
-            sensitive = result.scope.excluded_sensitive_directories
+            first = audit_repository(root, POLICY)
+            second = audit_repository(root, POLICY)
+            sensitive = first.scope.excluded_sensitive_directories
             sensitive_paths = {item.path for item in sensitive}
-            finding_paths = {item.path for item in result.findings}
+            finding_paths = {item.path for item in first.findings}
 
             self.assertTrue(sensitive)
             self.assertTrue(all(item.status == ScopeExclusionStatus.EXCLUDED_SENSITIVE for item in sensitive))
             self.assertTrue(all(item.files_not_read for item in sensitive))
             self.assertTrue(any(path.endswith("chrome-user-data/Default") for path in sensitive_paths))
             self.assertFalse(any(path.startswith("src/") for path in sensitive_paths))
-            self.assertEqual(result.scope.framework_files_scanned, len(route_names))
-            self.assertTrue(expected_paths.issubset({path.relative_to(root).as_posix() for path in result.scope and []} | expected_paths))
+            self.assertEqual(first.scope.framework_files_scanned, len(route_names))
             self.assertFalse(any(path.startswith("artifacts/") for path in finding_paths))
+            self.assertEqual(first.scope, second.scope)
+            self.assertEqual(
+                [(item.rule_id, item.path, item.line) for item in first.findings],
+                [(item.rule_id, item.path, item.line) for item in second.findings],
+            )
 
     def test_single_ambiguous_marker_file_does_not_exclude_known_source_root(self) -> None:
         with tempfile.TemporaryDirectory() as name:
