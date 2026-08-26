@@ -1,48 +1,36 @@
-# SEO Autopilot for OpenAI Codex v1.5.0
+# SEO Autopilot for OpenAI Codex v1.5.1
 
-## Trust and transparency
+## Bootstrap runtime hotfix
 
-- Канонические исходники, skill, policies, schemas, tests и release tooling опубликованы обычными просматриваемыми файлами.
-- Непрозрачный base64/xz source bundle исключён из канонического дерева.
-- User и Engineering Edition собираются непосредственно из текущего commit.
-- `VERSION` является единственным источником номера версии.
-- Output-каталоги имеют marker, проверку локальных изменений и атомарную замену.
-- Детерминированные ZIP получают вычисленные SHA-256 и проверяются повторной сборкой.
+- Исправлено определение версии при прямом запуске из распакованной User или Engineering Edition через `PYTHONPATH=<edition>/src`.
+- Runtime теперь читает и валидирует корневой `VERSION`, когда package metadata ещё не установлены.
+- Команда `<python> -S -m seo_autopilot --version` из проверенной распакованной поставки возвращает `seo-autopilot 1.5.1`, а не `0+unknown`.
+- User Edition теперь содержит `release-manifest.json`, поэтому policy pack, schemas и source root доступны при прямом временном запуске без постоянной установки.
+- Добавлен регрессионный тест, точно воспроизводящий bootstrap-сценарий без site-packages.
 
-## Transactional Autopilot
+## Safety and compatibility
 
-- Добавлены `doctor`, `audit`, `fix`, `rollback`, `verify`, `install-skill` и `command-hash`.
-- Введены уровни `A_AUTO_FIX`, `B_REVIEW_REQUIRED`, `C_ADVISORY_ONLY`.
-- Автоматическое применение ограничено механически доказанными исправлениями; начальный адаптер добавляет отсутствующие размеры локальных PNG/JPEG/GIF/WebP.
-- Fix mode работает в изолированном Git worktree, отключает hooks, создаёт локальную ветку и не реализует push/merge/deploy.
-- Проектные команды разрешены только как точный argv без shell и с подтверждённым SHA-256.
-- Добавлены бюджеты, `git diff --check`, trusted validators, повторный аудит, идемпотентность и rollback.
-
-## Evidence and reports
-
-- Каждый finding содержит ID, rule, severity, risk, confidence, path/line, evidence и status.
-- Каждый запуск формирует `run.json`, `report.md`, `report.html` и transaction state.
-- Policy pack версионирован и ссылается на первичные источники.
-- Отчёты проходят централизованную высокоточную редакцию секретов.
-- Не обещаются ranking, indexing, traffic или rich-result outcomes.
+- Version gate остаётся обязательным: несовпадающая или неопределённая версия по-прежнему блокирует mutation.
+- Архив должен пройти SHA-256 и безопасную распаковку до импорта runtime.
+- Dirty working tree не очищается через reset, clean или stash.
+- `doctor` и `audit` остаются read-only; `fix` допускается только для чистого Git-репозитория и механически доказанных A-level исправлений.
+- Push, merge и deployment не выполняются автоматически.
 
 ## Verification
 
 Обязательный gate выполняется локально:
 
 ```bash
-python scripts/verify_local.py
+python scripts/verify_local.py --release
 ```
 
-Он включает компиляцию, unit/adversarial/transaction tests, prompt-injection boundary, rollback, идемпотентность, secret scan, schema/report checks, чистую установку User Edition, две детерминированные сборки и проверку восстановленных релизных файлов.
+Он включает компиляцию, source-layout version smoke test, unit/adversarial/transaction tests, prompt-injection boundary, rollback, идемпотентность, secret scan, чистую установку, две детерминированные сборки, SBOM и проверку release assets.
 
 ```text
 GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
 Release gate: LOCAL VERIFICATION ONLY
 ```
 
-GitHub Actions не является частью release gate. В релизном дереве отсутствуют активные workflow-файлы.
-
 ## Compatibility
 
-v1.5.0 использует Python 3.10 или новее. Старые v1.4.0 артефакты не переписываются; исправления публикуются новой версией и новым набором SHA-256.
+v1.5.1 использует Python 3.10 или новее. v1.5.0 остаётся историческим релизом, но его direct-from-archive bootstrap не следует использовать из-за подтверждённого `0+unknown` version-gate defect.
