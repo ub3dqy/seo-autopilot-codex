@@ -2,6 +2,31 @@
 
 All notable product, policy, safety and release-process changes are recorded here.
 
+## 1.5.3 — Route-safe privacy marker detection
+
+### Fixed
+
+- Next.js route and content directories named `cookies`, `history`, `preferences`, `bookmarks`, or other browser-like marker names are no longer treated as browser profile databases;
+- active source below route groups such as `src/app/(site)/(legacy)/cookies/` remains in `SOURCE_FIRST` scope;
+- a single ambiguous marker file inside a known source root no longer excludes the surrounding source subtree.
+
+### Changed
+
+- browser-profile markers must be regular files rather than directories or symlinks;
+- ambiguous marker names now require browser-shaped context or multiple independent markers;
+- distinctive browser database filenames remain fail-closed outside known source roots;
+- custom source roots receive the same false-positive protection as built-in source roots.
+
+### Added
+
+- regression coverage for `cookies`, `history`, `preferences`, and `bookmarks` Next.js routes alongside a real Chrome profile;
+- deterministic repeat-audit assertions proving that source inclusion and sensitive exclusions remain stable.
+
+### Security
+
+- actual browser profiles remain `EXCLUDED_SENSITIVE` with `files_not_read=true`;
+- the fix changes metadata classification only and does not open, excerpt, or hash browser database contents.
+
 ## 1.5.2 — Audit Scope & Privacy Hardening
 
 ### Added
