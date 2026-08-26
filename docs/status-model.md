@@ -1,11 +1,22 @@
 # Status model
 
-- `READY` — all mandatory preconditions are satisfied.
-- `READY_WITH_LIMITATIONS` — deterministic work can continue, but optional capability such as Codex CLI or a framework adapter is absent.
-- `REVIEW_REQUIRED` — evidence exists that needs an owner decision, or fix mode is blocked by a dirty worktree.
-- `BLOCKED` — a mandatory prerequisite is absent.
-- `PASSED` — the requested deterministic scope completed and no open finding remains in that scope.
-- `FAILED` — execution or validation failed.
-- `NOT_RUN` — an explicitly separate live or external evidence check did not execute.
+SEO Autopilot uses explicit states rather than a single ambiguous PASS/FAIL label.
 
-`NOT_RUN`, `READY_WITH_LIMITATIONS`, and `REVIEW_REQUIRED` must never be summarized as PASS.
+| Status | Meaning |
+|---|---|
+| `READY` | Preconditions for the requested operation are satisfied. |
+| `READY_WITH_LIMITATIONS` | Work can continue, but declared evidence or adapter coverage is unavailable. |
+| `REVIEW_REQUIRED` | Read-only audit completed or the project is usable, but human review or a clean mutation baseline is required. This is **not** a technical failure. |
+| `BLOCKED` | A mandatory safety or integrity precondition prevents the requested operation. |
+| `PASSED` | The requested deterministic operation and its validators completed successfully. |
+| `FAILED` | An attempted operation or validator failed. |
+| `NOT_RUN` | The operation was not attempted. |
+
+Scope exclusions are recorded separately:
+
+| Scope status | Meaning |
+|---|---|
+| `EXCLUDED_BY_SCOPE` | Generated, temporary, archive, report, fixture, example, dependency, build, or owner-excluded tree was not audited as production source. |
+| `EXCLUDED_SENSITIVE` | Browser-profile or credential-adjacent tree was identified from metadata and excluded before content reads. |
+
+Missing external evidence should be described as `DEFERRED` or `NOT_RUN`, not estimated. A dirty Git tree normally produces `REVIEW_REQUIRED`: audit remains available, while `fix` stays blocked.

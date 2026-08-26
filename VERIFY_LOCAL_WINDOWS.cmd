@@ -1,11 +1,14 @@
 @echo off
 setlocal
+chcp 65001 >nul
+set "PYTHONUTF8=1"
+set "PYTHONIOENCODING=utf-8"
 cd /d "%~dp0"
 where py >nul 2>nul
 if %errorlevel%==0 (
-  py -3 scripts\verify_local.py
+  py -3 -X utf8 scripts\verify_local_utf8.py %*
 ) else (
-  python scripts\verify_local.py
+  python -X utf8 scripts\verify_local_utf8.py %*
 )
 if errorlevel 1 (
   echo.

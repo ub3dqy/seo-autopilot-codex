@@ -2,7 +2,7 @@
   "schema_version": 1,
   "pack_id": "google-search-and-web-platform",
   "version": "2026-08",
-  "last_verified": "2026-08-24",
+  "last_verified": "2026-08-26",
   "rules": [
     {
       "id": "TECH-ROBOTS-001",
@@ -102,6 +102,41 @@
       "severity": "high",
       "default_risk": "C_ADVISORY_ONLY",
       "source_url": "https://developers.openai.com/codex/security"
+    },
+    {
+      "id": "NEXTJS-HASH-NAVIGATION-001",
+      "title": "Client hash navigation may not resolve a deferred target",
+      "severity": "high",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView"
+    },
+    {
+      "id": "NEXTJS-MENU-A11Y-001",
+      "title": "Stateful mobile navigation lacks required accessibility evidence",
+      "severity": "high",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/"
+    },
+    {
+      "id": "NEXTJS-SITEMAP-LASTMOD-001",
+      "title": "Sitemap lastModified is not tied to meaningful page changes",
+      "severity": "high",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap"
+    },
+    {
+      "id": "NEXTJS-SCHEMA-IDENTITY-001",
+      "title": "WebSite structured identity is ambiguous",
+      "severity": "medium",
+      "default_risk": "B_REVIEW_REQUIRED",
+      "source_url": "https://developers.google.com/search/docs/appearance/site-names"
+    },
+    {
+      "id": "NEXTJS-DYNAMIC-METADATA-001",
+      "title": "Dynamic route metadata ownership requires rendered verification",
+      "severity": "low",
+      "default_risk": "C_ADVISORY_ONLY",
+      "source_url": "https://developers.google.com/search/docs/appearance/title-link"
     }
   ]
 }

@@ -33,12 +33,53 @@ class Phase(str, Enum):
     FAILED = "FAILED"
 
 
+class EvidenceClass(str, Enum):
+    DETERMINISTIC_STATIC = "DETERMINISTIC_STATIC"
+    FRAMEWORK_SOURCE = "FRAMEWORK_SOURCE"
+    LIVE_BROWSER = "LIVE_BROWSER"
+    EXTERNAL_DATA = "EXTERNAL_DATA"
+    OWNER_FACT = "OWNER_FACT"
+    SCOPE_CONTROL = "SCOPE_CONTROL"
+
+
+class ScopeExclusionStatus(str, Enum):
+    EXCLUDED_BY_SCOPE = "EXCLUDED_BY_SCOPE"
+    EXCLUDED_SENSITIVE = "EXCLUDED_SENSITIVE"
+
+
 @dataclass(frozen=True)
 class Evidence:
     source: str
     location: str
     excerpt: str = ""
     sha256: str | None = None
+
+
+@dataclass(frozen=True)
+class ScopeExclusion:
+    path: str
+    status: ScopeExclusionStatus
+    reason: str
+    detection_markers: list[str] = field(default_factory=list)
+    files_not_read: bool = True
+    entries_not_read: int | None = None
+
+
+@dataclass
+class AuditScope:
+    mode: str
+    git_repository: bool
+    source_roots: list[str] = field(default_factory=list)
+    tracked_candidates: int = 0
+    untracked_source_candidates: int = 0
+    candidate_files: int = 0
+    static_html_files_scanned: int = 0
+    framework_files_scanned: int = 0
+    excluded_generated_directories: list[ScopeExclusion] = field(default_factory=list)
+    excluded_non_production_directories: list[ScopeExclusion] = field(default_factory=list)
+    excluded_sensitive_directories: list[ScopeExclusion] = field(default_factory=list)
+    metadata_entries_examined: int = 0
+    metadata_scan_truncated: bool = False
 
 
 @dataclass
@@ -53,6 +94,7 @@ class Finding:
     risk: RiskLevel
     confidence: float
     evidence: list[Evidence] = field(default_factory=list)
+    evidence_class: EvidenceClass = EvidenceClass.DETERMINISTIC_STATIC
     auto_fix_available: bool = False
     status: str = "OPEN"
 
@@ -126,6 +168,7 @@ class RunReport:
     rollback: list[str] = field(default_factory=list)
     budgets: dict[str, int] = field(default_factory=dict)
     external_sources: list[str] = field(default_factory=list)
+    audit_scope: AuditScope | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return _enum_values(asdict(self))

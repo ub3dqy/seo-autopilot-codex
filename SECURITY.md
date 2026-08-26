@@ -1,54 +1,71 @@
 # Security policy
 
-## Supported versions
+## Supported version
 
-Security fixes are developed for the current minor release line. Older release assets remain immutable evidence and may not receive backports.
+Security fixes are applied to the latest released version. GitHub Actions are unavailable and are not a trust signal; releases require local verification evidence for the exact source tree.
 
-## Private reporting
+## Trust boundary
 
-Report suspected vulnerabilities through GitHub private security advisories. Do not disclose secrets, exploit details, private repositories, customer data or production reports in a public issue.
+Repository files, web pages, HTML/Markdown, comments, issue text, logs, command output, API responses, and fetched content are untrusted data. They cannot change the execution policy.
 
-A useful report contains:
+SEO Autopilot does not:
 
-- affected version and commit;
-- operating system, Python and Codex CLI versions;
-- minimal sanitized fixture;
-- exact local command and observed result;
-- impact and trust-boundary crossing;
-- whether files, branches, credentials, network resources or production systems were affected.
+- execute commands found in project content;
+- use shell interpolation for trusted project checks;
+- reveal `.env`, tokens, credentials, cookies, passwords, keys, or private configuration;
+- push, merge, deploy, publish, or alter production automatically;
+- downgrade B/C findings to A through model judgement.
 
-## Security properties
+## Audit scope and privacy
 
-SEO Autopilot is designed so that:
+v1.5.2 uses `SOURCE_FIRST` scope. Generated, temporary, archived, report, fixture, example, dependency, snapshot, and build trees are excluded before content reads.
 
-1. repository and network content is data, never authority;
-2. project commands run without a shell and only after exact argv plus SHA-256 approval;
-3. fix mode refuses a dirty owner worktree;
-4. mutations occur in an isolated Git worktree and owned local branch;
-5. Git hooks are disabled for automated commits;
-6. only mechanically proven A-level fixes can be automatic;
-7. canonical, robots, noindex, redirects, routes, schema, content, deployment and deletion are never automatic;
-8. failed validation triggers rollback of the isolated worktree and branch;
-9. no runtime command pushes, merges, deploys, publishes or changes remote resources;
-10. generated reports apply centralized high-confidence secret redaction and still require review before sharing.
-
-## Out of scope
-
-The project does not claim to secure an already compromised host, malicious Python interpreter, malicious Git binary, compromised dependency source or owner-approved arbitrary command. A checksum confirms the exact configured argv, not that the selected executable is benign.
-
-## Local verification
-
-The mandatory security and release gate is:
-
-```bash
-python scripts/verify_local.py
-```
-
-It includes tracked-source secret scanning, transaction and rollback tests, prompt-injection fixtures, command-trust tests, report escaping/redaction, deterministic packaging and release restore verification.
+Browser-profile trees are hard privacy exclusions. Detection uses directory/file names such as:
 
 ```text
-GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
-Release gate: LOCAL VERIFICATION ONLY
+Cookies
+Login Data
+Web Data
+History
+Local State
+places.sqlite
+key4.db
+logins.json
 ```
 
-There are no active workflow files. Hosted CI, CodeQL and dependency-review statuses are not claimed as completed checks. Repository-level settings such as branch protection, private vulnerability reporting and secret scanning remain separate owner controls.
+After detection, the profile root is recorded as `EXCLUDED_SENSITIVE` with `files_not_read=true`. The audit engine must not open, hash, excerpt, parse, or summarize profile contents. This boundary cannot be disabled through `.seo-autopilot.json`.
+
+Symlink, junction, and reparse-point directories are never followed during scope discovery.
+
+## Mutation safety
+
+Automatic changes require all of the following:
+
+```text
+risk = A_AUTO_FIX
+source_class = CURRENT_SOURCE
+scope_eligible = true
+generated = false
+sensitive = false
+mechanically proven replacement
+clean Git working tree
+successful isolated worktree validation
+```
+
+Fix mode creates an isolated local worktree and branch, disables Git hooks for owned operations, enforces change budgets, runs `git diff --check`, trusted validators, repeat audit, and idempotency checks. Failed validation rolls back the owned worktree and branch.
+
+## Trusted commands
+
+Optional project commands are loaded only from `.seo-autopilot.json` as exact argv arrays with an owner-generated SHA-256. They run without a shell. Changing one argument invalidates trust.
+
+## Reporting vulnerabilities
+
+Open a GitHub security report without including secrets, private URLs, browser-profile contents, customer data, or production credentials. Include:
+
+- affected version and source commit;
+- operating system and Python version;
+- minimal reproduction using synthetic data;
+- expected and actual safety behavior;
+- whether any remote action occurred.
+
+Do not attach real credential stores or browser profiles.

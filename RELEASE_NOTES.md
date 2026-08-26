@@ -1,36 +1,26 @@
-# SEO Autopilot for OpenAI Codex v1.5.1
+# SEO Autopilot for OpenAI Codex v1.5.2
 
-## Bootstrap runtime hotfix
+## Audit Scope & Privacy Hardening
 
-- Исправлено определение версии при прямом запуске из распакованной User или Engineering Edition через `PYTHONPATH=<edition>/src`.
-- Runtime теперь читает и валидирует корневой `VERSION`, когда package metadata ещё не установлены.
-- Команда `<python> -S -m seo_autopilot --version` из проверенной распакованной поставки возвращает `seo-autopilot 1.5.1`, а не `0+unknown`.
-- User Edition теперь содержит `release-manifest.json`, поэтому policy pack, schemas и source root доступны при прямом временном запуске без постоянной установки.
-- Добавлен регрессионный тест, точно воспроизводящий bootstrap-сценарий без site-packages.
-
-## Safety and compatibility
-
-- Version gate остаётся обязательным: несовпадающая или неопределённая версия по-прежнему блокирует mutation.
-- Архив должен пройти SHA-256 и безопасную распаковку до импорта runtime.
-- Dirty working tree не очищается через reset, clean или stash.
-- `doctor` и `audit` остаются read-only; `fix` допускается только для чистого Git-репозитория и механически доказанных A-level исправлений.
-- Push, merge и deployment не выполняются автоматически.
+- Source-first candidate selection replaces recursive workspace-wide HTML scanning.
+- Generated, temporary, archived, report, fixture, example, and build trees are excluded before content reads.
+- Browser profiles are hard privacy exclusions detected from metadata markers; profile contents are never opened by the audit engine.
+- A-level fixes require a `CURRENT_SOURCE` scope classification.
+- `run.json` schema version 1 now records `audit_scope`, exclusions, scan counts, and evidence classes.
+- A deterministic Next.js source adapter records review findings for hash navigation, mobile-menu accessibility, sitemap dates, WebSite identity, and dynamic metadata ownership.
+- `REVIEW_REQUIRED` remains a completed read-only audit outcome that blocks mutation until owner review or a clean baseline.
 
 ## Verification
 
-Обязательный gate выполняется локально:
+The mandatory gate remains local:
 
 ```bash
 python scripts/verify_local.py --release
 ```
 
-Он включает компиляцию, source-layout version smoke test, unit/adversarial/transaction tests, prompt-injection boundary, rollback, идемпотентность, secret scan, чистую установку, две детерминированные сборки, SBOM и проверку release assets.
+It must pass the AIRSYS-shaped scope/privacy regression, all prior unit/lifecycle/transaction tests, secret scan, direct-from-ZIP runtime tests, deterministic double build, SBOM, release verification, and post-build generated-tree verification.
 
 ```text
 GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
 Release gate: LOCAL VERIFICATION ONLY
 ```
-
-## Compatibility
-
-v1.5.1 использует Python 3.10 или новее. v1.5.0 остаётся историческим релизом, но его direct-from-archive bootstrap не следует использовать из-за подтверждённого `0+unknown` version-gate defect.

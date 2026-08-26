@@ -1,80 +1,93 @@
 # Architecture
 
-## Components
+SEO Autopilot separates evidence collection, policy, scope, mutation, validation, and reporting.
+
+## Runtime flow
 
 ```text
-natural-language Codex request
-        │
-        ▼
-skills/seo-autopilot/SKILL.md
-        │  trust boundary and workflow
-        ▼
-seo-autopilot CLI
-   ├── doctor.py            Git/Codex/stack readiness
-   ├── policy.py            versioned rules and risk floor
-   ├── engine.py            deterministic evidence and A-level fixes
-   ├── trusted_commands.py  exact argv + SHA-256 validators
-   ├── transaction.py       isolated worktree, branch, commit, rollback
-   └── reporting.py         run.json, Markdown, standalone HTML
-        │
-        ▼
-local seo-autopilot/<run-id> branch
+doctor
+  → detect Git and framework
+  → classify readiness
+
+audit
+  → SOURCE_FIRST scope plan
+  → generated/non-production exclusions
+  → metadata-only sensitive-profile detection
+  → static HTML engine
+  → framework source adapter
+  → policy/risk classification
+  → structured run.json + Markdown/HTML
+
+fix
+  → require clean Git tree
+  → repeat scoped audit
+  → select CURRENT_SOURCE A-level candidates only
+  → isolated worktree and local branch
+  → apply bounded deterministic changes
+  → git diff --check + trusted validators
+  → repeat audit + idempotency
+  → commit or rollback
 ```
 
-The Codex skill is an orchestration policy. The Python engine is the deterministic enforcement layer. The skill cannot promote a change into automatic application; only engine-produced `SafeFix` records with `A_AUTO_FIX` are eligible.
+## Scope layer
 
-## Run lifecycle
+`scope.py` is the authority for candidate selection. In Git repositories it combines tracked source with untracked files only inside known source roots. In non-Git directories it inspects only root website files and known source roots.
+
+The scope layer records:
+
+- tracked and untracked source candidate counts;
+- static and framework files scanned;
+- generated/temporary exclusions;
+- non-production fixture/example exclusions;
+- sensitive browser-profile exclusions;
+- whether metadata discovery reached its budget.
+
+The legacy static parser receives only paths admitted by the scope plan. This preserves existing deterministic rules while removing workspace-wide recursive noise.
+
+## Privacy layer
+
+Directory metadata is examined without opening file contents. Browser markers identify the nearest profile root. Once marked `EXCLUDED_SENSITIVE`, traversal stops and contents are never passed to parsers, hashing, excerpts, secret scans, or reports.
+
+Hard privacy exclusions take precedence over custom includes.
+
+## Evidence classes
+
+Findings declare one evidence class:
 
 ```text
-INITIALIZED
-  → DISCOVERY_COMPLETE
-  → EVIDENCE_COMPLETE
-  → PLAN_COMPLETE
-  → PATCH_APPLIED
-  → VALIDATION_COMPLETE
-  → COMMITTED
+DETERMINISTIC_STATIC
+FRAMEWORK_SOURCE
+LIVE_BROWSER
+EXTERNAL_DATA
+OWNER_FACT
+SCOPE_CONTROL
 ```
 
-Any failure after transaction creation goes to `ROLLED_BACK` or, when rollback itself cannot complete, `FAILED`. State is persisted in `.seo-autopilot/runs/<run-id>/state.json`.
-
-## Read-only audit
-
-`audit` scans bounded UTF-8 HTML evidence, local crawl-control files, supported local image headers and versioned policy rules. It does not execute project commands or change source files.
-
-## Fix transaction
-
-`fix` requires a clean Git worktree, resolves `HEAD`, creates a detached temporary worktree outside the owner repository, creates `seo-autopilot/<run-id>`, re-audits that exact commit, applies only A-level changes, runs built-in and explicitly trusted validators, repeats the audit for idempotency, commits locally and removes the temporary worktree. The branch remains for review.
-
-## Reports
-
-`run.json` is the source of truth. Markdown and HTML are projections. Each finding carries a stable ID, policy rule, severity, risk, confidence, status, path, line and evidence. A report distinguishes applied, open, skipped, deferred, failed and rolled-back work.
+v1.5.2 emits deterministic static and framework source findings. Live/browser and external-data findings require separate factual evidence and must not be inferred from source alone.
 
 ## Framework adapters
 
-The doctor detects common stacks without executing package scripts. Static HTML has a deterministic adapter. Other stacks are detected for routing and reporting but remain audit-limited until a dedicated adapter proves metadata ownership and build semantics. Unknown stacks never trigger speculative source rewriting.
+The Next.js adapter performs conservative read-only checks for source patterns that need review:
 
-## Release architecture
+- client hash navigation with no explicit post-render target resolution;
+- stateful mobile menu controls missing accessibility evidence;
+- sitemap lastModified based on build/runtime time;
+- ambiguous WebSite identity;
+- dynamic route metadata ownership.
 
-```text
-tracked source commit
-        │
-        ▼
-python scripts/verify_local.py
-        │
-        ├── compile + unit/security/transaction tests
-        ├── secret scan + schema/report verification
-        ├── clean User Edition install test
-        ├── deterministic build #1
-        ├── deterministic build #2
-        └── release restore + SHA-256 verification
-        │
-        ▼
-User ZIP + Engineering ZIP + manifest + SHA256SUMS + local evidence
-```
+Framework findings are always B/C. They cannot produce automatic source edits.
 
-`VERSION` is canonical. `release-manifest.json` describes edition contents and artifact templates. `prepare_editions.py` validates tracked sources, builds marked trees, refuses unsafe replacement, creates deterministic ZIPs and writes computed checksums.
+## Risk floor
 
-GitHub is used as source, review, tag and release storage only. The repository intentionally has no active `.github/workflows/*` files.
+- A: mechanically proven, scope-eligible `CURRENT_SOURCE` only.
+- B: owner review and explicit decision.
+- C: advisory only.
+
+Canonical, robots, noindex, redirects, URL changes, structured data, content, deletion, push, merge, and deployment are never promoted to A by model judgement.
+
+## Packaging and verification
+
+`VERSION` is the single version source. User and Engineering Editions are built from tracked source, written deterministically, marked, hashed, rebuilt, and compared. The local release gate runs source tests, AIRSYS-shaped scope/privacy regressions, transaction tests, secret scan, direct-from-ZIP runtime checks, SBOM generation, release verification, and post-build generated-tree verification.
 
 ```text
 GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
