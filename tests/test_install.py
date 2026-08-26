@@ -30,6 +30,8 @@ class LocalInstallTests(unittest.TestCase):
             launcher = Path(result["launcher"])
             dist_info = Path(result["dist_info"])
             self.assertTrue((package / "__init__.py").is_file())
+            self.assertTrue((package / "entrypoint.py").is_file())
+            self.assertTrue((package / "scope.py").is_file())
             self.assertTrue((package / local_install.MARKER).is_file())
             self.assertTrue((skill / "SKILL.md").is_file())
             self.assertTrue((skill / local_install.MARKER).is_file())
@@ -46,6 +48,22 @@ class LocalInstallTests(unittest.TestCase):
                 check=True,
             )
             self.assertEqual(completed.stdout.strip(), result["version"])
+
+            website = root / "website"
+            website.mkdir()
+            (website / "index.html").write_text("<html></html>\n", encoding="utf-8")
+            scoped = subprocess.run(
+                [sys.executable, "-m", "seo_autopilot", "scope", str(website), "--json"],
+                env=env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+            )
+            self.assertEqual(scoped.returncode, 0, scoped.stderr or scoped.stdout)
+            payload = json.loads(scoped.stdout)
+            self.assertEqual(payload["html_scope"]["selected_paths"], ["index.html"])
 
     def test_unmanaged_target_is_not_overwritten(self) -> None:
         with tempfile.TemporaryDirectory() as name:
