@@ -1,50 +1,70 @@
 # SEO Autopilot — Engineering Edition
 
-Engineering Edition содержит канонический source tree, Codex skill, versioned policy packs, JSON Schema, deterministic engine, transaction layer, tests, docs и локальные release tools.
+Engineering Edition содержит канонические исходники, тесты, schemas, policy packs, release tooling и документацию.
 
-## Mandatory local gate
+## v1.5.2 architecture boundary
+
+Основной audit path состоит из:
+
+```text
+scope.py
+  → SOURCE_FIRST candidate plan
+  → generated/non-production exclusions
+  → metadata-only sensitive profile detection
+  → static engine + framework adapter
+  → structured audit_scope/evidence classes
+  → transaction eligibility
+```
+
+Hard privacy exclusions применяются до чтения содержимого. A-level candidates допускаются только из `CURRENT_SOURCE`. Next.js adapter выпускает только B/C findings.
+
+## Локальная проверка
+
+Обязательный release gate:
 
 ```bash
-python scripts/verify_local.py
+python scripts/verify_local.py --release
 ```
 
 Windows:
 
 ```text
-VERIFY_LOCAL_WINDOWS.cmd
+VERIFY_LOCAL_WINDOWS.cmd --release
 ```
 
-Gate проверяет компиляцию, unit/adversarial/transaction tests, prompt-injection boundary, rollback, идемпотентность, secret scan, отчёты и schema, установку User Edition, двойную детерминированную сборку, восстановление release assets и SHA-256.
+Gate выполняет:
+
+- compile/import checks;
+- unit, adversarial, transaction, rollback и idempotency tests;
+- AIRSYS-shaped `artifacts/**`/`tmp/**`/browser-profile regression;
+- schema/report validation;
+- tracked-source secret scan;
+- dependency-free User Edition install lifecycle;
+- direct-from-ZIP version tests;
+- две детерминированные сборки;
+- SBOM, SHA-256 и release verification;
+- post-build generated-tree verification.
 
 ```text
 GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
 Release gate: LOCAL VERIFICATION ONLY
 ```
 
-## Release build
+## Сборка
 
 ```bash
-python scripts/verify_local.py
 python prepare_editions.py --build-zips
 python scripts/verify_release.py dist
 ```
 
-`VERSION` является единственным version literal. `release-manifest.json` задаёт состав редакций и шаблоны имён. Output-каталоги имеют проверяемый marker и не заменяются при локальном изменении без явного `--force`.
+Версия читается только из `VERSION`. Output-каталоги управляются marker-файлами, атомарно заменяются и не перезаписываются при неизвестных изменениях.
 
-Релиз публикуется только после PASS локального gate. В репозитории не должно быть активных `.github/workflows/*.yml` или `.yaml`; hosted status не используется как доказательство.
+## Документация
 
-## Safety invariants
-
-- no shell interpolation;
-- no implicit project commands;
-- exact argv SHA-256 trust;
-- clean-tree gate;
-- isolated worktree and owned local branch;
-- disabled Git hooks;
-- A/B/C risk floor;
-- bounded writes;
-- validation plus second-run idempotency;
-- rollback on failure;
-- no push, merge, deploy or remote mutation from the product runtime.
-
-See `docs/architecture.md`, `docs/safety-model.md`, `docs/local-verification.md`, `SECURITY.md` and `CONTRIBUTING.md` before changing mutation behavior.
+- [Audit scope and privacy boundary](docs/audit-scope.md)
+- [Architecture](docs/architecture.md)
+- [Configuration](docs/configuration.md)
+- [Local verification](docs/local-verification.md)
+- [Release process](docs/release-process.md)
+- [Safety model](docs/safety-model.md)
+- [Security](SECURITY.md)
