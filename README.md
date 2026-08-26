@@ -26,7 +26,7 @@ Bootstrap автоматически предписывает:
 - проверить точный SHA-256 до распаковки и запуска;
 - безопасно распаковать архив;
 - запустить runtime непосредственно из поставки без постоянной установки;
-- выполнить `doctor → audit → verify`;
+- выполнить scope preflight и `doctor → audit → verify`;
 - при чистом Git и наличии A-level кандидатов выполнить `fix`;
 - оставить изменения только в отдельной локальной ветке;
 - сформировать `run.json`, `report.md`, `report.html` и rollback;
@@ -58,6 +58,41 @@ audit
 verify run.json
 ```
 
+## Область аудита и защита приватных данных
+
+Перед разбором HTML новый runtime выполняет read-only scope preflight:
+
+```bash
+PYTHONPATH=src PYTHONNOUSERSITE=1 python -S -m seo_autopilot.scope /absolute/path/to/site --json
+```
+
+По умолчанию из SEO-findings исключаются:
+
+```text
+artifacts/
+tmp/
+temp/
+playwright-report/
+test-results/
+blob-report/
+.cache/
+.turbo/
+```
+
+Также сохраняются прежние исключения `.git`, `.seo-autopilot`, `node_modules`, `.next`, `.nuxt`, `.output`, `dist`, `build` и `coverage`. Untracked-файлы, исключённые через `.gitignore`, в аудит не входят.
+
+Browser-profile и credential-bearing каталоги определяются по именам путей и marker-файлов, после чего исключаются. Cookies, History, Login Data, Web Data и аналогичные файлы не открываются и не читаются.
+
+Для проектных правил используется `.seo-autopilotignore`:
+
+```gitignore
+legacy-export/**
+reports/**
+!artifacts/current-production-snapshot/**
+```
+
+Правила применяются по порядку; `!` повторно включает проверенный файл или subtree. Подробности: [Audit scope and privacy](docs/audit-scope.md).
+
 ## Ручная установка
 
 ### Windows
@@ -83,6 +118,7 @@ seo-autopilot fix .
 Дополнительные команды:
 
 ```bash
+python -m seo_autopilot.scope . --json
 seo-autopilot verify .seo-autopilot/runs/<run-id>/run.json
 seo-autopilot rollback --state .seo-autopilot/runs/<run-id>/state.json
 seo-autopilot command-hash -- npm test
@@ -167,6 +203,7 @@ Release gate: LOCAL VERIFICATION ONLY
 
 ## Документация
 
+- [Audit scope and privacy](docs/audit-scope.md)
 - [Local verification](docs/local-verification.md)
 - [Security policy](SECURITY.md)
 - [Safety model](docs/safety-model.md)
