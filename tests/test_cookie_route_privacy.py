@@ -23,14 +23,17 @@ class CookieRoutePrivacyTests(unittest.TestCase):
         subprocess.run(["git", "config", "user.name", "Cookie Route Test"], cwd=root, check=True)
         subprocess.run(["git", "config", "user.email", "cookie-route@example.invalid"], cwd=root, check=True)
 
+    def write_next_package(self, root: Path) -> None:
+        (root / "package.json").write_text(
+            json.dumps({"dependencies": {"next": "15.0.0", "react": "19.0.0"}}),
+            encoding="utf-8",
+        )
+
     def test_browser_marker_route_directories_remain_current_source(self) -> None:
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             self.init_repo(root)
-            (root / "package.json").write_text(
-                json.dumps({"dependencies": {"next": "15.0.0", "react": "19.0.0"}}),
-                encoding="utf-8",
-            )
+            self.write_next_package(root)
 
             route_root = root / "src" / "app" / "(site)" / "(legacy)"
             route_names = ("cookies", "history", "preferences", "bookmarks")
@@ -76,6 +79,8 @@ class CookieRoutePrivacyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             self.init_repo(root)
+            self.write_next_package(root)
+
             source = root / "src" / "app"
             source.mkdir(parents=True)
             (source / "Cookies").write_bytes(b"application-owned source fixture")
