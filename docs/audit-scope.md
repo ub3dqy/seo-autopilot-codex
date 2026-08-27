@@ -1,6 +1,6 @@
 # Audit scope and privacy boundary
 
-SEO Autopilot v1.5.3 uses `SOURCE_FIRST` scope. It does not recursively treat every HTML file inside a workspace as a production page.
+SEO Autopilot v1.5.4 uses `SOURCE_FIRST` scope. It does not recursively treat every HTML file inside a workspace as a production page.
 
 ## Default candidate model
 
@@ -17,6 +17,42 @@ artifacts/ tmp/ temp/ .cache/ .next/ .nuxt/ .output/
 dist/ build/ coverage/ playwright-report/ test-results/
 reports/ logs/ snapshots/ backups/ archives/ tests/ fixtures/ examples/
 ```
+
+## Site-ownership verification files
+
+Small provider-issued HTML files used only to prove site ownership are not normal pages and must not receive page-level SEO findings.
+
+v1.5.4 recognizes only strict contracts:
+
+- Google: a root, `public/`, or `static/` filename such as `google<token>.html` whose complete content is `google-site-verification: <same filename>`;
+- Yandex: a root, `public/`, or `static/` filename such as `yandex_<token>.html` whose small verification body contains `Verification: <same token>`.
+
+A filename alone is not sufficient. Similarly named real HTML pages remain in scope. Recognized files are recorded in:
+
+```text
+audit_scope.excluded_site_verification_files
+```
+
+They receive `EXCLUDED_BY_SCOPE` with the provider and reason. The small candidate file is read only for exact classification, so its record uses `files_not_read=false`; this is distinct from hard privacy exclusions.
+
+## Next.js metadata endpoint ownership
+
+For a detected Next.js App Router project, the following files can own public endpoints:
+
+```text
+app/robots.ts
+src/app/robots.ts
+app/sitemap.ts
+src/app/sitemap.ts
+app/robots.txt
+src/app/robots.txt
+app/sitemap.xml
+src/app/sitemap.xml
+```
+
+Dynamic `.ts`/`.js` metadata files suppress the generic “missing robots/sitemap file” finding only when a default export is present. Source ownership does not prove that the live endpoint works; live HTTP verification remains separate.
+
+A same-named source file without a default export does not suppress the generic finding.
 
 ## Hard privacy exclusions
 
@@ -69,8 +105,8 @@ path resolves inside the target workspace
 replacement is mechanically proven
 ```
 
-Otherwise the engine emits review evidence or excludes the file. It never applies an A-level fix to artifacts, snapshots, temporary files, or browser profiles.
+Otherwise the engine emits review evidence or excludes the file. It never applies an A-level fix to artifacts, snapshots, temporary files, browser profiles, or ownership-verification files.
 
 ## Structured evidence
 
-Every v1.5.3 `run.json` includes `audit_scope`, counts of scanned source files, generated/non-production exclusions, privacy exclusions, and evidence classes. `REVIEW_REQUIRED` means audit completed but human review or a clean mutation baseline is required; it is not equivalent to `FAILED`.
+Every v1.5.4 `run.json` includes `audit_scope`, counts of scanned source files, generated/non-production exclusions, ownership-verification file exclusions, privacy exclusions, and evidence classes. `REVIEW_REQUIRED` means audit completed but human review or a clean mutation baseline is required; it is not equivalent to `FAILED`.
