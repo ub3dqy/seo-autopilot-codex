@@ -1,6 +1,6 @@
 # Audit scope and privacy boundary
 
-SEO Autopilot v1.5.2 uses `SOURCE_FIRST` scope. It does not recursively treat every HTML file inside a workspace as a production page.
+SEO Autopilot v1.5.3 uses `SOURCE_FIRST` scope. It does not recursively treat every HTML file inside a workspace as a production page.
 
 ## Default candidate model
 
@@ -20,7 +20,22 @@ reports/ logs/ snapshots/ backups/ archives/ tests/ fixtures/ examples/
 
 ## Hard privacy exclusions
 
-Directory metadata is inspected for browser-profile markers such as `Cookies`, `Login Data`, `Web Data`, `History`, `Local State`, `places.sqlite`, `key4.db`, and `logins.json`. Once a profile root is identified, its contents are excluded before audit reads. Reports record only the path, reason, marker names, and `files_not_read=true`.
+Directory metadata is inspected for regular files used by browser profiles, including `Cookies`, `Login Data`, `Web Data`, `History`, `Local State`, `places.sqlite`, `key4.db`, and `logins.json`. Marker contents are not opened.
+
+A directory name by itself is never browser database evidence. Therefore application routes and content directories such as:
+
+```text
+src/app/(site)/(legacy)/cookies/
+src/app/history/
+src/pages/preferences/
+content/bookmarks/
+```
+
+remain current source.
+
+Ambiguous marker names require browser-shaped path context or multiple independent markers. A single ambiguous marker inside a known source root cannot exclude that source subtree. Distinctive database names outside source roots remain fail-closed.
+
+Once a genuine profile root is identified, its contents are excluded before audit reads. Reports record only the path, reason, marker names, and `files_not_read=true`.
 
 Hard privacy exclusions cannot be disabled by project configuration.
 
@@ -39,7 +54,7 @@ Optional roots and additional exclusions can be declared in `.seo-autopilot.json
 }
 ```
 
-Paths must be relative and cannot contain `..`. Includes never override generated, non-production, symlink/junction, or sensitive-profile exclusions.
+Paths must be relative and cannot contain `..`. Includes never override generated, non-production, symlink/junction, or sensitive-profile exclusions. Custom source roots receive the same false-positive protection as built-in source roots.
 
 ## Auto-fix boundary
 
@@ -58,4 +73,4 @@ Otherwise the engine emits review evidence or excludes the file. It never applie
 
 ## Structured evidence
 
-Every v1.5.2 `run.json` includes `audit_scope`, counts of scanned source files, generated/non-production exclusions, privacy exclusions, and evidence classes. `REVIEW_REQUIRED` means audit completed but human review or a clean mutation baseline is required; it is not equivalent to `FAILED`.
+Every v1.5.3 `run.json` includes `audit_scope`, counts of scanned source files, generated/non-production exclusions, privacy exclusions, and evidence classes. `REVIEW_REQUIRED` means audit completed but human review or a clean mutation baseline is required; it is not equivalent to `FAILED`.

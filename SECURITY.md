@@ -18,9 +18,9 @@ SEO Autopilot does not:
 
 ## Audit scope and privacy
 
-v1.5.2 uses `SOURCE_FIRST` scope. Generated, temporary, archived, report, fixture, example, dependency, snapshot, and build trees are excluded before content reads.
+v1.5.3 uses `SOURCE_FIRST` scope. Generated, temporary, archived, report, fixture, example, dependency, snapshot, and build trees are excluded before content reads.
 
-Browser-profile trees are hard privacy exclusions. Detection uses directory/file names such as:
+Browser-profile trees are hard privacy exclusions. Detection uses metadata for regular files such as:
 
 ```text
 Cookies
@@ -33,9 +33,11 @@ key4.db
 logins.json
 ```
 
+A directory with one of these names is not browser database evidence. Application routes and content directories named `cookies`, `history`, `preferences`, or `bookmarks` remain source candidates. Ambiguous marker filenames inside known source roots require corroborating browser context; actual browser-profile-shaped trees remain fail-closed.
+
 After detection, the profile root is recorded as `EXCLUDED_SENSITIVE` with `files_not_read=true`. The audit engine must not open, hash, excerpt, parse, or summarize profile contents. This boundary cannot be disabled through `.seo-autopilot.json`.
 
-Symlink, junction, and reparse-point directories are never followed during scope discovery.
+Symlink, junction, and reparse-point directories are never followed during scope discovery. Symlink entries cannot serve as browser profile markers.
 
 ## Mutation safety
 

@@ -30,8 +30,10 @@ else:
     except PackageNotFoundError:
         __version__ = "0+unknown"
 
+from .scope_marker_hardening import activate as _activate_scope_marker_hardening
 from .runtime_hardening import activate as _activate_runtime_hardening
 
+_activate_scope_marker_hardening()
 _activate_runtime_hardening()
 
 __all__ = ["__version__"]
