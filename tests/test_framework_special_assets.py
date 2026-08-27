@@ -158,6 +158,12 @@ class FrameworkSpecialAssetTests(unittest.TestCase):
             self.assertIn("TECH-ROBOTS-001", rules)
             self.assertNotIn("TECH-SITEMAP-001", rules)
 
+    def test_new_scope_field_is_optional_for_schema_v1_backward_compatibility(self) -> None:
+        schema = json.loads((ROOT / "schemas" / "run.schema.json").read_text(encoding="utf-8"))
+        audit_scope = schema["properties"]["audit_scope"]
+        self.assertIn("excluded_site_verification_files", audit_scope["properties"])
+        self.assertNotIn("excluded_site_verification_files", audit_scope["required"])
+
 
 if __name__ == "__main__":
     unittest.main()
