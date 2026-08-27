@@ -85,6 +85,7 @@
         "framework_files_scanned",
         "excluded_generated_directories",
         "excluded_non_production_directories",
+        "excluded_site_verification_files",
         "excluded_sensitive_directories",
         "metadata_entries_examined",
         "metadata_scan_truncated"
@@ -103,6 +104,10 @@
           "items": {"$ref": "#/$defs/scopeExclusion"}
         },
         "excluded_non_production_directories": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/scopeExclusion"}
+        },
+        "excluded_site_verification_files": {
           "type": "array",
           "items": {"$ref": "#/$defs/scopeExclusion"}
         },
