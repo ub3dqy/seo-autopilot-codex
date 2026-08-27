@@ -33,11 +33,19 @@ alongside a real browser-profile-shaped tree containing `Network/Cookies` and `L
 
 ## Verification
 
-The mandatory release gate remains local:
+The canonical cross-platform release gate remains:
 
 ```bash
-python -X utf8 scripts/verify_local_utf8.py --release
+python scripts/verify_local.py --release
 ```
+
+The UTF-8-safe Windows entry point used for the exact release run is:
+
+```text
+VERIFY_LOCAL_WINDOWS.cmd --release
+```
+
+It invokes the UTF-8 wrapper with `-X utf8`, `PYTHONUTF8=1`, and `PYTHONIOENCODING=utf-8` while preserving the same verification contract.
 
 The one-link bootstrap remains pinned to published v1.5.2 until v1.5.3 assets are built, executed directly from both ZIP editions, published, downloaded again, and verified by SHA-256. A separate verified bootstrap commit then switches all public pins to v1.5.3.
 
