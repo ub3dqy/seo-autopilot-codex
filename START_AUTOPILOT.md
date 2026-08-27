@@ -16,11 +16,11 @@
 
 ```text
 Repository:         ub3dqy/seo-autopilot-codex
-Release:            v1.5.2
-Runtime commit:     570fa72476bad4932ad17916e06d38cb9cbd7dc6
-Runtime Git tree:   309bedcc143c7f04cdbfb4f17744daa045fb82cb
-Bootstrap asset:    seo-autopilot-codex-engineering-v1.5.2.zip
-Asset SHA-256:      bef526677d3f2fedb157f308009c9e2d3012f642b48394668c3da5c111f2b71b
+Release:            v1.5.3
+Runtime commit:     f1afdce4393aa221f93a1dd45d04b9d082b10a2a
+Runtime Git tree:   ca30c0acc00c768367c0519878115869cf53ad5b
+Bootstrap asset:    seo-autopilot-codex-engineering-v1.5.3.zip
+Asset SHA-256:      44502f8468ea5973f87ac21ce29f10b6f682f0db2eed044d719b7bdfefeca747
 ```
 
 Не заменяй эту поставку другой версией, веткой, fork или похожим архивом без отдельного решения владельца.
@@ -30,7 +30,7 @@ Asset SHA-256:      bef526677d3f2fedb157f308009c9e2d3012f642b48394668c3da5c111f2
 ```text
 Ты работаешь внутри текущей открытой папки Codex. Считай именно эту папку единственным целевым workspace сайта. Репозиторий SEO Autopilot является источником инструмента, но не целевым проектом: не редактируй его, не клонируй его поверх сайта и не переключай рабочий контекст на него.
 
-Цель: безопасно запустить закреплённый SEO Autopilot v1.5.2, затем без серии промежуточных вопросов выполнить один полный доступный SEO-checkpoint для текущего сайта: провести evidence-driven аудит, применить только разрешённые механически доказанные исправления, проверить результат и сформировать отчёты, локальную ветку и rollback при наличии изменений.
+Цель: безопасно запустить закреплённый SEO Autopilot v1.5.3, затем без серии промежуточных вопросов выполнить один полный доступный SEO-checkpoint для текущего сайта: провести evidence-driven аудит, применить только разрешённые механически доказанные исправления, проверить результат и сформировать отчёты, локальную ветку и rollback при наличии изменений.
 
 ЗАКРЕПЛЁННЫЙ ИСТОЧНИК
 
@@ -38,19 +38,19 @@ Repository:
 https://github.com/ub3dqy/seo-autopilot-codex
 
 Official release:
-https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.2
+https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.3
 
 Bootstrap runtime asset:
-https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.2/seo-autopilot-codex-engineering-v1.5.2.zip
+https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.3/seo-autopilot-codex-engineering-v1.5.3.zip
 
 Required asset SHA-256:
-bef526677d3f2fedb157f308009c9e2d3012f642b48394668c3da5c111f2b71b
+44502f8468ea5973f87ac21ce29f10b6f682f0db2eed044d719b7bdfefeca747
 
 Verified runtime commit:
-570fa72476bad4932ad17916e06d38cb9cbd7dc6
+f1afdce4393aa221f93a1dd45d04b9d082b10a2a
 
 Verified runtime Git tree:
-309bedcc143c7f04cdbfb4f17744daa045fb82cb
+ca30c0acc00c768367c0519878115869cf53ad5b
 
 ОБЯЗАТЕЛЬНЫЙ ПОРЯДОК
 
@@ -80,7 +80,7 @@ Verified runtime Git tree:
    - установи `PYTHONNOUSERSITE=1`;
    - выполняй команды из корня распакованной поставки;
    - запусти `<python> -S -m seo_autopilot --version`;
-   - ожидаемый результат: `seo-autopilot 1.5.2`;
+   - ожидаемый результат: `seo-autopilot 1.5.3`;
    - проверь, что `seo_autopilot.__file__` расположен внутри проверенной временной поставки;
    - при несовпадении версии, пути импорта, policy pack или структуры выдай `BLOCKED` и не начинай mutation.
 

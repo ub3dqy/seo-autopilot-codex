@@ -8,15 +8,15 @@ ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "https://github.com/ub3dqy/seo-autopilot-codex"
 RAW_RU = "https://raw.githubusercontent.com/ub3dqy/seo-autopilot-codex/main/START_AUTOPILOT.md"
 RAW_EN = "https://raw.githubusercontent.com/ub3dqy/seo-autopilot-codex/main/START_AUTOPILOT_EN.md"
-RELEASE = "https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.2"
+RELEASE = "https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.3"
 ASSET = (
-    "https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.2/"
-    "seo-autopilot-codex-engineering-v1.5.2.zip"
+    "https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.3/"
+    "seo-autopilot-codex-engineering-v1.5.3.zip"
 )
-SOURCE_COMMIT = "570fa72476bad4932ad17916e06d38cb9cbd7dc6"
-SOURCE_TREE = "309bedcc143c7f04cdbfb4f17744daa045fb82cb"
-ASSET_SHA256 = "bef526677d3f2fedb157f308009c9e2d3012f642b48394668c3da5c111f2b71b"
-VERSION = "1.5.2"
+SOURCE_COMMIT = "f1afdce4393aa221f93a1dd45d04b9d082b10a2a"
+SOURCE_TREE = "ca30c0acc00c768367c0519878115869cf53ad5b"
+ASSET_SHA256 = "44502f8468ea5973f87ac21ce29f10b6f682f0db2eed044d719b7bdfefeca747"
+VERSION = "1.5.3"
 
 
 class RemoteBootstrapTests(unittest.TestCase):

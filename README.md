@@ -2,7 +2,7 @@
 
 SEO Autopilot — evidence-driven инструмент для технического SEO-аудита и консервативного внедрения только механически доказанных исправлений в код сайта. Он использует source-first scope, hard privacy exclusions, явные уровни риска, изолированную Git-транзакцию, локальные проверки, JSON/Markdown/HTML-отчёты и rollback.
 
-Актуальная опубликованная версия и закреплённый one-link runtime: **v1.5.2**.
+Актуальная опубликованная версия и закреплённый one-link runtime: **v1.5.3**.
 
 ## Запустить из папки сайта одной фразой
 
@@ -21,21 +21,22 @@ SEO Autopilot — evidence-driven инструмент для техническ
 > **Codex:** текущая открытая папка является единственным target workspace. Этот репозиторий — только источник проверенного инструмента. Не клонируй SEO Autopilot поверх сайта и не редактируй репозиторий инструмента вместо сайта.
 
 - [Bootstrap-промт на русском](START_AUTOPILOT.md)
+- [Актуальная GitHub-страница bootstrap](https://github.com/ub3dqy/seo-autopilot-codex/blob/main/START_AUTOPILOT.md)
 - [Bootstrap prompt in English](START_AUTOPILOT_EN.md)
-- [Актуальный опубликованный Release v1.5.2](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.2)
+- [Актуальный опубликованный Release v1.5.3](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.3)
 
-### Текущая закреплённая поставка до публикации v1.5.2
+### Текущая закреплённая поставка
 
 ```text
-Release:          v1.5.2
-Runtime commit:   570fa72476bad4932ad17916e06d38cb9cbd7dc6
-Runtime Git tree: 309bedcc143c7f04cdbfb4f17744daa045fb82cb
-Asset:            seo-autopilot-codex-engineering-v1.5.2.zip
-Asset URL:        https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.2/seo-autopilot-codex-engineering-v1.5.2.zip
-SHA-256:          bef526677d3f2fedb157f308009c9e2d3012f642b48394668c3da5c111f2b71b
+Release:          v1.5.3
+Runtime commit:   f1afdce4393aa221f93a1dd45d04b9d082b10a2a
+Runtime Git tree: ca30c0acc00c768367c0519878115869cf53ad5b
+Asset:            seo-autopilot-codex-engineering-v1.5.3.zip
+Asset URL:        https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.3/seo-autopilot-codex-engineering-v1.5.3.zip
+SHA-256:          44502f8468ea5973f87ac21ce29f10b6f682f0db2eed044d719b7bdfefeca747
 ```
 
-Этот блок намеренно совпадает с `START_AUTOPILOT.md`. После публикации и обратной SHA-256-проверки v1.5.2 отдельный проверенный bootstrap-commit заменит все значения одновременно.
+Этот блок совпадает с `START_AUTOPILOT.md`; commit, Git tree и SHA-256 относятся к опубликованному runtime v1.5.3.
 
 ## Source-first audit scope
 
