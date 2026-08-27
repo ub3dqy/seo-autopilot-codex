@@ -2,7 +2,7 @@
 
 SEO Autopilot — evidence-driven инструмент для технического SEO-аудита и консервативного внедрения только механически доказанных исправлений в код сайта. Он использует source-first scope, hard privacy exclusions, явные уровни риска, изолированную Git-транзакцию, локальные проверки, JSON/Markdown/HTML-отчёты и rollback.
 
-Актуальная опубликованная версия и закреплённый one-link runtime: **v1.5.3**.
+Актуальная опубликованная версия и закреплённый one-link runtime: **v1.5.4**.
 
 ## Запустить из папки сайта одной фразой
 
@@ -23,20 +23,20 @@ SEO Autopilot — evidence-driven инструмент для техническ
 - [Bootstrap-промт на русском](START_AUTOPILOT.md)
 - [Актуальная GitHub-страница bootstrap](https://github.com/ub3dqy/seo-autopilot-codex/blob/main/START_AUTOPILOT.md)
 - [Bootstrap prompt in English](START_AUTOPILOT_EN.md)
-- [Актуальный опубликованный Release v1.5.3](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.3)
+- [Актуальный опубликованный Release v1.5.4](https://github.com/ub3dqy/seo-autopilot-codex/releases/tag/v1.5.4)
 
 ### Текущая закреплённая поставка
 
 ```text
-Release:          v1.5.3
-Runtime commit:   f1afdce4393aa221f93a1dd45d04b9d082b10a2a
-Runtime Git tree: ca30c0acc00c768367c0519878115869cf53ad5b
-Asset:            seo-autopilot-codex-engineering-v1.5.3.zip
-Asset URL:        https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.3/seo-autopilot-codex-engineering-v1.5.3.zip
-SHA-256:          44502f8468ea5973f87ac21ce29f10b6f682f0db2eed044d719b7bdfefeca747
+Release:          v1.5.4
+Runtime commit:   0ed3953a5b759a200c7879f0d18a9e23bceed732
+Runtime Git tree: 314a587104bbd74e10da0a920a6eb20f309634d2
+Asset:            seo-autopilot-codex-engineering-v1.5.4.zip
+Asset URL:        https://github.com/ub3dqy/seo-autopilot-codex/releases/download/v1.5.4/seo-autopilot-codex-engineering-v1.5.4.zip
+SHA-256:          89eebb8440c991d30bb1f13f105f27705ee4847b040b5ee6ab553e37fc87f00e
 ```
 
-Этот блок совпадает с `START_AUTOPILOT.md`; commit, Git tree и SHA-256 относятся к опубликованному runtime v1.5.3.
+Этот блок совпадает с `START_AUTOPILOT.md`; commit, Git tree и SHA-256 относятся к опубликованному runtime v1.5.4.
 
 ## Source-first audit scope
 
