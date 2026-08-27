@@ -2,6 +2,27 @@
 
 All notable product, policy, safety and release-process changes are recorded here.
 
+## 1.5.4 — Next.js metadata and site-verification accuracy
+
+### Fixed
+
+- Next.js App Router metadata files with a default export now own `/robots.txt` and `/sitemap.xml`, preventing generic missing-file findings when `robots.ts` or `sitemap.ts` is the real source;
+- exact Google and Yandex ownership-verification HTML files no longer receive title, description, canonical, language, duplicate-title, image, or auto-fix findings;
+- projects with no production static HTML pages now report actual framework-source coverage instead of an obsolete “no explicit adapter” limitation.
+
+### Added
+
+- `audit_scope.excluded_site_verification_files` with provider, reason, and classification-read semantics;
+- deterministic regression coverage for framework-owned robots/sitemap endpoints, Google/Yandex verification files, similarly named real pages, and metadata files without a default export;
+- explicit source-ownership evidence in the skipped/limitations section while retaining live endpoint verification as a separate gate.
+
+### Guardrails
+
+- verification-file classification requires both a provider-specific filename and matching small-file content;
+- a filename alone never removes a real page from audit scope;
+- `robots.ts` and `sitemap.ts` do not suppress missing-endpoint findings unless the expected App Router path and a default export are present;
+- real findings such as hash-navigation behavior, legal-source drift, schema identity, CSP, or server disclosure are unchanged.
+
 ## 1.5.3 — Route-safe privacy marker detection
 
 ### Fixed

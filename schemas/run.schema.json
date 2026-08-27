@@ -106,6 +106,10 @@
           "type": "array",
           "items": {"$ref": "#/$defs/scopeExclusion"}
         },
+        "excluded_site_verification_files": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/scopeExclusion"}
+        },
         "excluded_sensitive_directories": {
           "type": "array",
           "items": {"$ref": "#/$defs/scopeExclusion"}

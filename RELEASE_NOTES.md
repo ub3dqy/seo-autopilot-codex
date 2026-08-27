@@ -1,35 +1,39 @@
-# SEO Autopilot for OpenAI Codex v1.5.3
+# SEO Autopilot for OpenAI Codex v1.5.4
 
-## Route-safe privacy marker detection
+## Next.js metadata and site-verification accuracy
 
-v1.5.3 is a focused field-test hotfix for the AIRSYS result produced by v1.5.2.
+v1.5.4 is a focused field-test patch for the AIRSYS v1.5.3 checkpoint. The v1.5.3 privacy and route-scope fixes passed, but 10 of 11 deterministic findings were not actionable: two treated framework-owned `/robots.txt` and `/sitemap.xml` as missing, and eight treated Google/Yandex ownership-verification files as ordinary pages.
 
 ### Fixed
 
-- directories named `cookies`, `history`, `preferences`, `bookmarks`, and similar browser-marker words are no longer interpreted as browser profile databases;
-- active Next.js source such as `src/app/(site)/(legacy)/cookies/page.tsx` remains inside `SOURCE_FIRST` audit scope;
-- a lone ambiguous marker file inside a known source root cannot exclude the surrounding source tree.
+- recognized Next.js App Router metadata owners at `app/robots.ts`, `src/app/robots.ts`, `app/sitemap.ts`, and `src/app/sitemap.ts` suppress generic missing-file findings only when a default export is present;
+- static `app/robots.txt`, `src/app/robots.txt`, `app/sitemap.xml`, and `src/app/sitemap.xml` are also recognized as endpoint owners;
+- exact Google and Yandex site-ownership verification files are excluded from title, description, canonical, language, duplicate-title, image, and auto-fix checks;
+- verification-file exclusions are recorded explicitly in `audit_scope.excluded_site_verification_files` instead of disappearing silently;
+- a Next.js project with no production static HTML now reports framework-source coverage rather than the obsolete “no explicit adapter” limitation.
 
-### Privacy behavior retained
+### Guardrails
 
-- marker entries must be regular files; directories and symlinks are ignored as browser database evidence;
-- actual Chrome/Chromium/Edge/Firefox/Playwright profiles remain `EXCLUDED_SENSITIVE`;
-- `files_not_read=true` remains mandatory;
-- no browser database content is opened, excerpted, or hashed;
-- distinctive database markers outside source roots continue to fail closed.
+- a filename alone is insufficient to classify an HTML file as an ownership-verification asset;
+- classification requires a small file in the repository root, `public/`, or `static/`, plus an exact provider-specific filename/content contract;
+- similarly named real pages remain in scope;
+- `robots.ts` or `sitemap.ts` without a default export do not suppress missing-endpoint findings;
+- live HTTP verification of `/robots.txt` and `/sitemap.xml` remains a separate check and is never inferred from source alone;
+- confirmed source/live findings such as hash-navigation delay, legal-text drift, schema identity, CSP, or server disclosure are not suppressed.
 
 ### Regression coverage
 
-The release gate includes a Next.js fixture containing active routes named:
+The release gate includes an AIRSYS-shaped Next.js fixture with:
 
 ```text
-cookies
-history
-preferences
-bookmarks
+src/app/robots.ts
+src/app/sitemap.ts
+public/google55fef1f505cfa1c3.html
+public/yandex_ee018aae7c9cfe7f.html
+scripts/static-first-loader.js
 ```
 
-alongside a real browser-profile-shaped tree containing `Network/Cookies` and `Login Data`. Acceptance requires all route files to be scanned, the browser profile to be excluded, zero source paths to be classified sensitive, and repeat audits to be deterministic.
+Acceptance requires the two verification files to be recorded but not audited as pages, framework-owned endpoints not to produce `TECH-ROBOTS-001` or `TECH-SITEMAP-001`, and the real hash-navigation finding to remain.
 
 ## Verification
 
@@ -39,15 +43,13 @@ The canonical cross-platform release gate remains:
 python scripts/verify_local.py --release
 ```
 
-The UTF-8-safe Windows entry point used for the exact release run is:
+The UTF-8-safe Windows entry point is:
 
 ```text
 VERIFY_LOCAL_WINDOWS.cmd --release
 ```
 
-It invokes the UTF-8 wrapper with `-X utf8`, `PYTHONUTF8=1`, and `PYTHONIOENCODING=utf-8` while preserving the same verification contract.
-
-The one-link bootstrap remains pinned to published v1.5.2 until v1.5.3 assets are built, executed directly from both ZIP editions, published, downloaded again, and verified by SHA-256. A separate verified bootstrap commit then switches all public pins to v1.5.3.
+The one-link bootstrap remains pinned to published v1.5.3 until v1.5.4 assets pass the exact local gate, direct-from-ZIP field smoke, publication, download, and SHA-256 round-trip verification. A separate verified bootstrap commit then switches all public pins to v1.5.4.
 
 ```text
 GitHub Actions: BLOCKED_EXTERNAL / WAIVED_BY_OWNER
