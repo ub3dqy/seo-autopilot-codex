@@ -77,6 +77,7 @@ class AuditScope:
     framework_files_scanned: int = 0
     excluded_generated_directories: list[ScopeExclusion] = field(default_factory=list)
     excluded_non_production_directories: list[ScopeExclusion] = field(default_factory=list)
+    excluded_site_verification_files: list[ScopeExclusion] = field(default_factory=list)
     excluded_sensitive_directories: list[ScopeExclusion] = field(default_factory=list)
     metadata_entries_examined: int = 0
     metadata_scan_truncated: bool = False
